@@ -4,50 +4,55 @@ Marca cada item quando validado.
 
 ## Critérios do documento de planeamento
 
-- [ ] **Docker Compose** — `docker compose up -d` sobe sem erros
-- [ ] **Docker Compose** — `docker compose down` para e limpa sem erros
-- [ ] **API LLM** — `GET /health/llm` devolve 200 com resposta do LM Studio
-- [ ] **Git + secrets** — `.env` ignorado; nenhum secret no repo
-- [ ] **Documentação** — README + `docs/fase-0/` permitem reproduzir o setup
+- [x] **Docker Compose** — `docker compose up -d` sobe sem erros
+- [x] **Docker Compose** — `docker compose down` para e limpa sem erros
+- [x] **API LLM** — `GET /health/llm` devolve 200 com resposta do LM Studio
+- [x] **Git + secrets** — `.env` ignorado; nenhum secret no repo
+- [x] **Documentação** — README + `docs/fase-0/` permitem reproduzir o setup
 
 ## Entregável Hello World
 
-- [ ] LM Studio instalado e Local Server activo na porta 1234
-- [ ] `http://localhost:1234/v1/models` responde no host Windows
-- [ ] `.env` criado a partir de `.env.example` com modelo correcto
-- [ ] Container `friday-healthcheck` healthy no Docker
-- [ ] `http://localhost:8080/health` → 200 JSON
-- [ ] `http://localhost:8080/health/llm` → 200 JSON com `llm.ok: true`
-- [ ] Acesso LAN funcional de outro dispositivo (opcional mas recomendado)
+- [x] LM Studio instalado e Local Server activo na porta 1234
+- [x] `http://localhost:1234/v1/models` responde no host Windows
+- [x] `.env` criado a partir de `.env.example` com modelo correcto
+- [x] Container `friday-healthcheck` healthy no Docker
+- [x] `http://localhost:8080/health` → 200 JSON
+- [x] `http://localhost:8080/health/llm` → 200 JSON com `llm.ok: true`
+- [x] Acesso LAN funcional de outro dispositivo (telemóvel na rede Main)
 
 ## Componentes da Fase 0
 
 ### Hardware
-- [ ] Decisão documentada em [decisoes-hardware.md](decisoes-hardware.md)
-- [ ] Checklist bootstrap host final definido
+- [x] Decisão documentada em [decisoes-hardware.md](decisoes-hardware.md)
+- [x] Checklist bootstrap host final definido
 
 ### Containerização
-- [ ] `docker-compose.yml` válido (`docker compose config`)
-- [ ] Serviço healthcheck com `/health` e `/health/llm`
-- [ ] Healthcheck Docker (container healthy)
+- [x] `docker-compose.yml` válido (`docker compose config`)
+- [x] Serviço healthcheck com `/health` e `/health/llm`
+- [x] Healthcheck Docker (container healthy)
 
 ### Secrets
-- [ ] `.gitignore` reforçado
-- [ ] `.env.example` versionado
-- [ ] Política em [gestao-secrets.md](gestao-secrets.md)
+- [x] `.gitignore` reforçado
+- [x] `.env.example` versionado
+- [x] Política em [gestao-secrets.md](gestao-secrets.md)
 
 ### Git
-- [ ] Estrutura `services/` e `docs/fase-0/` versionada
-- [ ] Convenções em [README.md](README.md)
+- [x] Estrutura `services/` e `docs/fase-0/` versionada
+- [x] Convenções em [README.md](README.md)
 
 ### Rede
-- [ ] [rede-local.md](rede-local.md) com IP, porta e firewall
-- [ ] *(Opcional)* Plano VLAN IoT para Fase 3
+- [x] [rede-local.md](rede-local.md) com IP, porta e firewall
+- [x] IoT isolado via Guest Network Cudy — [rede-vlan-cudy-wr11000.md](../arquitectura/rede-vlan-cudy-wr11000.md)
 
 ### LLM
-- [ ] [lm-studio-setup.md](lm-studio-setup.md) completo
-- [ ] Integração OpenAI-compatible funcional
-- [ ] [contas-api.md](contas-api.md) preparatório Fase 1
+- [x] [lm-studio-setup.md](lm-studio-setup.md) completo
+- [x] Integração OpenAI-compatible funcional
+- [x] [contas-api.md](contas-api.md) preparatório Fase 1
+
+### Arranque condicional
+- [x] [friday-start.ps1](../../scripts/friday-start.ps1) com auto-detect LM Studio
+- [x] [register-startup-task.ps1](../../scripts/register-startup-task.ps1) — Task Scheduler `FRIDAY-AI-Startup`
+- [x] Config local opcional: [friday-config.ps1.example](../../scripts/friday-config.ps1.example)
 
 ## Comandos de validação rápida
 
@@ -65,6 +70,6 @@ git check-ignore -v .env
 
 | Campo | Valor |
 |---|---|
-| Concluída em | _preencher_ |
-| Validado por | _preencher_ |
-| Notas | _preencher_ |
+| Concluída em | 2026-08-19 |
+| Validado por | Tiago Pedro |
+| Notas | Hello World LAN validado no telemóvel (Main OK, Guest bloqueado). Firewall Windows regra FRIDAY-Healthcheck. IoT via Guest Network Cudy WR11000. |

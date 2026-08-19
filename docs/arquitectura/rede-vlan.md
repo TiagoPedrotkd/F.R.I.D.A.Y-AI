@@ -69,6 +69,22 @@ Internet ── modem/router (VLAN-capable)
 2. Firewall → Guest network isolation (adapt for IoT VLAN)
 3. Assign ports to VLAN via switch config
 
+**Implementado (Cudy WR11000):** Guest Network isolada — ver [rede-vlan-cudy-wr11000.md](rede-vlan-cudy-wr11000.md).
+
+### OpenWrt / LuCI — WR11000 (LuCI avancado)
+
+Router detectado em `192.168.10.1` (OpenWrt + LuCI, modelo WR11000).
+
+**Guia completo:** [rede-vlan-openwrt-wr11000.md](rede-vlan-openwrt-wr11000.md)
+
+**Script SSH (template):** [`scripts/openwrt-vlan-setup.sh`](../../scripts/openwrt-vlan-setup.sh)
+
+Resumo rapido LuCI:
+1. Network → Interfaces → criar `iot` (192.168.30.1/24) e `mgmt` (192.168.99.1/24)
+2. Network → DHCP → reserva estatica MAC `D8-43-AE-90-B5-21` → `192.168.10.131`
+3. Network → Firewall → zona `iot` sem forward para WAN; regra Block IoT → Internet
+4. Desactivar UPnP e WPS
+
 > Adaptar passos ao firmware exacto. O princípio é o mesmo: **3 VLANs, IoT sem internet, Main acede IoT**.
 
 ## DNS local (opcional, Fase 3+)

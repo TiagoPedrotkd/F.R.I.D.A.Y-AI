@@ -13,7 +13,7 @@ Documentação interna da Fase 0 do projeto F.R.I.D.A.Y-AI.
 | [contas-api.md](contas-api.md) | APIs cloud (preparatório Fase 1) |
 | [checklist-conclusao.md](checklist-conclusao.md) | Critérios de fecho da Fase 0 |
 
-Ver também: [Arquitectura](../arquitectura/visao-geral.md) | [Rede VLAN](../arquitectura/rede-vlan.md)
+Ver também: [Arquitectura](../arquitectura/visao-geral.md) | [Rede Cudy Guest](../arquitectura/rede-vlan-cudy-wr11000.md) | [Checklist conclusão](checklist-conclusao.md) — **Fase 0 concluída 2026-08-19**
 
 ## Convenções Git
 

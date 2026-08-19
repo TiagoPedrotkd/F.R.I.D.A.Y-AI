@@ -168,6 +168,9 @@ secrets/
 credentials.json
 credentials*.json
 
+# Local script config (machine-specific paths)
+scripts/friday-config.ps1
+
 # Spyder project settings
 .spyderproject
 .spyproject

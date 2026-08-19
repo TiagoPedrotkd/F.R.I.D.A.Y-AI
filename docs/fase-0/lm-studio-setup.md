@@ -2,6 +2,9 @@
 
 O F.R.I.D.A.Y-AI usa LM Studio como servidor LLM local, exposto via API compatible com OpenAI.
 
+> **Nota:** Versoes recentes do LM Studio no Windows podem usar o executavel **Bionic.exe**
+> (ex.: `D:\Models\LM_STUDIO\Bionic\Bionic.exe`). O script `scripts/find-lm-studio.ps1` detecta automaticamente.
+
 ## Pré-requisitos
 
 - Windows 10/11 (máquina de dev atual)

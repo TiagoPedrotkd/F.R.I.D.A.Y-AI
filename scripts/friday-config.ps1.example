@@ -1,0 +1,10 @@
+# Configuracao local — copiar para friday-config.ps1 e ajustar
+# friday-config.ps1 esta no .gitignore (caminhos locais)
+
+# Caminho completo para LM Studio / Bionic (obrigatorio se auto-detect falhar)
+# Exemplo LM Studio: C:\Users\...\LM Studio.exe
+# Exemplo Bionic (LM Studio): D:\Models\LM_STUDIO\Bionic\Bionic.exe
+$LmStudioExe = "D:\Models\LM_STUDIO\Bionic\Bionic.exe"
+
+# Pasta do repo FRIDAY (default: auto-detectado pelo script)
+# $RepoPath = "D:\Repositories\F.R.I.D.A.Y-AI"

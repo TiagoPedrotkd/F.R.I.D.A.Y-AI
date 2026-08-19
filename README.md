@@ -57,6 +57,24 @@ docker compose down
 
 LM Studio corre neste PC (IP LAN `192.168.10.131`). O container usa `host.docker.internal` para o alcançar.
 
+## Arquitectura
+
+Documentação completa em [`docs/arquitectura/`](docs/arquitectura/visao-geral.md):
+
+- [Visão geral](docs/arquitectura/visao-geral.md) — fases, software, SPOFs
+- [Rede VLAN](docs/arquitectura/rede-vlan.md) — topologia IoT (configurar antes da Fase 3)
+- [Hardware](docs/fase-0/decisoes-hardware.md) — roadmap de compras P1–P7
+
+## Arranque condicional
+
+No login, o FRIDAY pergunta se queres iniciar serviços. Instalação:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\register-startup-task.ps1
+```
+
+Ver [`scripts/README.md`](scripts/README.md).
+
 ## Licença
 
 Ver [LICENSE](LICENSE).

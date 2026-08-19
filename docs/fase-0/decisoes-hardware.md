@@ -1,49 +1,94 @@
-# Decisões de Hardware — Fase 0
+# Decisões de Hardware — F.R.I.D.A.Y-AI
 
 ## Contexto
 
-A Fase 0 corre na **máquina Windows atual** como ambiente de desenvolvimento. O deploy num host dedicado fica para quando o hardware final estiver disponível.
+Orçamento inicial: **0€**. O PC Windows actual (`192.168.10.131`, GPU NVIDIA dedicada) actua como hub para todas as fases iniciais. Hardware adicional só quando houver orçamento.
 
-## Opções avaliadas
+## Hardware actual (0€)
 
-| Opção | Specs | Custo | Prós | Contras |
-|---|---|---|---|---|
-| **A — Raspberry Pi 5 (8GB)** | ARM, 8GB RAM | ~€90 | Baixo consumo, silencioso | LLMs locais pesados limitados |
-| **B — Mini-PC (Intel N100, 16GB)** | x86, 16GB RAM | ~€200–300 | Margem para crescer, Frigate/câmaras | Custo inicial maior |
-| **C — VPS (Hetzner, etc.)** | Cloud, variável | ~€5/mês | Sem hardware local | Latência câmaras, menos privacidade |
+| Componente | Uso | Estado |
+|---|---|---|
+| **PC Windows** (hub) | Docker, LM Studio, dev, orquestração | Activo — Fase 0 validada |
+| **GPU NVIDIA dedicada** | LLM, Whisper, Frigate | Disponível |
+| **Router VLAN-capable** | Segmentação IoT | Disponível — configurar antes Fase 3 |
+| **Disco interno PC** | OS + modelos + gravações | Em uso |
 
-## Recomendação para deploy futuro
-
-**Opção B — Mini-PC Intel N100 (16GB RAM)** para quem leva o projeto a sério a médio prazo.
-
-Justificação:
-
-- Suporta LM Studio com modelos maiores
-- Margem para Frigate (processamento de vídeo) na Fase 3
-- x86 compatível com ecossistema Docker mainstream
-- Consumo razoável para servidor 24/7 caseiro
-
-## Papel do Windows (Fase 0)
+### Papel do PC Windows
 
 | Função | Detalhe |
 |---|---|
 | Desenvolvimento | Cursor, Git, Docker Desktop |
-| LLM local | LM Studio corre no host Windows |
-| Testes | `docker compose up` + acesso LAN |
+| LLM local | LM Studio (API OpenAI-compatible) |
+| Inferência GPU | Modelos 7B–14B quantizados |
+| Orquestração | Docker Compose |
 
 O container Docker acede ao LM Studio via `host.docker.internal:1234`.
 
-## Checklist — Bootstrap do host final
+### Regra de carga
 
-Quando o Mini-PC/VPS estiver disponível:
+Serviços pesados (LM Studio, Frigate, Whisper) **só arrancam após confirmação no login** — ver [`scripts/friday-start.ps1`](../../scripts/friday-start.ps1).
 
-- [ ] Instalar OS (Ubuntu Server 24.04 LTS recomendado)
-- [ ] Configurar acesso SSH com chave (desativar password login)
-- [ ] Instalar Docker Engine + Docker Compose plugin
-- [ ] Clonar repo: `git clone https://github.com/TiagoPedrotkd/F.R.I.D.A.Y-AI.git`
-- [ ] Transferir `.env` de forma segura (SCP/USB — nunca via Git)
-- [ ] Se LM Studio local no host: instalar e carregar modelo
-- [ ] `docker compose up -d` e validar `/health/llm`
-- [ ] Configurar arranque automático (systemd ou `restart: unless-stopped`)
-- [ ] IP fixo ou reserva DHCP no router
-- [ ] Backup do `.env` encriptado offline
+---
+
+## Roadmap de compras (por ordem de impacto)
+
+| Prioridade | Produto | Preço ref. | Fase | Porquê |
+|---|---|---|---|---|
+| **P1** | SSD 1TB NVMe (Samsung 990 Evo, WD SN770) | ~€60–80 | 3 | Gravações Frigate + backups; separar de OS |
+| **P2** | Google Coral USB Accelerator | ~€60–90 | 3 | Detecção objectos Frigate sem sobrecarregar GPU |
+| **P3** | Mini-PC Beelink EQ12 (N100, 16GB, 500GB) | ~€180–220 | 3+ | Hub 24/7: HA + Vaultwarden + Frigate; PC fica para dev/LLM |
+| **P4** | Câmara IP PoE RTSP (Reolink RLC-810A, Dahua IPC) | ~€40–80/câm | 3 | Stream local; sem cloud; compatível Frigate |
+| **P5** | Switch PoE managed (TP-Link Omada SG2008P/SG2210P) | ~€80–120 | 3 | VLAN por porta + PoE para câmaras |
+| **P6** | Microfone USB (Fifine K669B, Blue Yeti) | ~€25–40 | 1 | STT local Whisper; sem cloud |
+| **P7** | Raspberry Pi 5 (8GB) + SSD | ~€90 + €30 | 3 | Coordinator Zigbee/Z-Wave (SkyConnect) se IoT wireless |
+
+**Não comprar agora:** VPS, NAS dedicado, wearables — incorporar quando souberes dispositivos concretos.
+
+---
+
+## Mapeamento hardware → fases
+
+| Fase | Carga no PC | Hardware extra |
+|---|---|---|
+| 0–1 Voz + núcleo | LM Studio + Whisper + Piper (GPU) | Mic USB (P6) |
+| 2 Produtividade | Leve (APIs HTTPS) | — |
+| 3 Casa + câmaras | **Pesado** (Frigate + HA) | SSD (P1), Coral (P2), câmaras (P4), switch (P5) |
+| 4 Saúde wearables | Leve (import local) | Depende do relógio |
+| 5 Finanças | Leve (Open Banking) | — |
+| 6 Passwords | Leve (Vaultwarden) | Mini-PC 24/7 (P3) se acesso sempre |
+| 7 Código | LM Studio modelos coder | GPU actual |
+
+---
+
+## Opções avaliadas (referência)
+
+| Opção | Specs | Custo | Prós | Contras |
+|---|---|---|---|---|
+| **A — Raspberry Pi 5 (8GB)** | ARM, 8GB | ~€90 | Baixo consumo | LLMs pesados limitados |
+| **B — Mini-PC N100 (16GB)** | x86, 16GB | ~€200–300 | Frigate, HA, margem | Custo inicial |
+| **C — VPS (Hetzner)** | Cloud | ~€5/mês | Sem hardware | Latência câmaras, privacidade |
+
+**Recomendação futura:** Opção B (Beelink EQ12) como hub 24/7 quando orçamento permitir.
+
+---
+
+## Checklist — Bootstrap Mini-PC (quando P3 chegar)
+
+- [ ] Instalar Ubuntu Server 24.04 LTS
+- [ ] SSH com chave (desactivar password login)
+- [ ] Docker Engine + Compose plugin
+- [ ] Clonar repo FRIDAY-AI
+- [ ] Transferir `.env` de forma segura (SCP/USB — nunca Git)
+- [ ] Migrar Frigate + HA + Vaultwarden para Mini-PC
+- [ ] PC Windows fica para dev + LM Studio pesado
+- [ ] IP fixo ou reserva DHCP
+- [ ] Backup `.env` encriptado offline
+- [ ] `docker compose up -d` e validar serviços
+
+---
+
+## Documentos relacionados
+
+- [Arquitectura geral](../arquitectura/visao-geral.md)
+- [Rede VLAN](../arquitectura/rede-vlan.md)
+- [LM Studio setup](lm-studio-setup.md)

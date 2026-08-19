@@ -1,0 +1,25 @@
+services:
+  healthcheck:
+    build:
+      context: ./services/healthcheck
+      dockerfile: Dockerfile
+    container_name: friday-healthcheck
+    ports:
+      - "${HEALTHCHECK_PORT:-8080}:8080"
+    env_file:
+      - .env
+    environment:
+      LM_STUDIO_BASE_URL: ${LM_STUDIO_BASE_URL:-http://host.docker.internal:1234/v1}
+      LM_STUDIO_MODEL: ${LM_STUDIO_MODEL:-microsoft/phi-4}
+      LM_STUDIO_API_KEY: ${LM_STUDIO_API_KEY:-lm-studio}
+      HEALTHCHECK_PORT: "8080"
+      HEALTHCHECK_HOST: "0.0.0.0"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

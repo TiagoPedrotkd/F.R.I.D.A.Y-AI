@@ -1,0 +1,15 @@
+# Fase 1 — voice loop (Windows host, GPU NVIDIA)
+# pip install -r requirements-voice.txt
+
+-e .
+faster-whisper>=1.1.0
+openwakeword>=0.6.0
+onnxruntime>=1.19.0
+sounddevice>=0.5.0
+numpy>=1.26.0
+openai>=1.55.0
+piper-tts>=1.2.0
+pydantic-settings>=2.0.0
+httpx>=0.28.0
+pytest>=8.0.0
+pytest-asyncio>=0.24.0

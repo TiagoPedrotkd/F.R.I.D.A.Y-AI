@@ -171,6 +171,15 @@ credentials*.json
 # Local script config (machine-specific paths)
 scripts/friday-config.ps1
 
+# ML models (downloaded locally)
+models/*
+!models/.gitkeep
+
+# Voice pipeline runtime
+logs/
+*.wav
+*.onnx
+
 # Spyder project settings
 .spyderproject
 .spyproject

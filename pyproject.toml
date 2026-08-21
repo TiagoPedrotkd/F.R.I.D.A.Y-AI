@@ -21,6 +21,14 @@ voice = [
     "openwakeword>=0.6.0",
     "sounddevice>=0.5.0",
     "piper-tts>=1.2.0",
+    "scipy>=1.11.0",
+    "webrtcvad-wheels>=2.0.11",
+    "tzdata>=2024.1",
+    "ddgs>=9.0.0",
+    "trafilatura>=1.12.0",
+    "feedparser>=6.0.0",
+    "mcp>=1.2.0",
+    "chromadb>=0.5.0",
 ]
 dev = [
     "pytest>=8.0.0",
@@ -29,10 +37,14 @@ dev = [
 
 [project.scripts]
 friday-voice = "friday.pipeline.loop:main"
+friday-mcp = "friday.mcp_server.server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["friday*"]
+
+[tool.setuptools.package-data]
+friday = ["monitors/*.html", "monitors/data/*", "monitors/*_snapshot.html"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

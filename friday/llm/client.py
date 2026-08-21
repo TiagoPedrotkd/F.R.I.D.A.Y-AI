@@ -2,14 +2,41 @@
 
 from __future__ import annotations
 
+import logging
 import time
+from typing import NoReturn
 
 import httpx
-from openai import APIConnectionError, APITimeoutError, OpenAI
+from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
 
 from friday.config import Settings
 from friday.pipeline.errors import APITimeoutError as PipelineTimeoutError
-from friday.pipeline.errors import NetworkError
+from friday.pipeline.errors import ModelUnavailableError, NetworkError
+
+logger = logging.getLogger(__name__)
+
+
+def _is_unloaded_error(exc: APIStatusError) -> bool:
+    try:
+        body = str(exc.response.json())
+    except Exception:
+        body = str(exc)
+    lowered = body.casefold()
+    return "unloaded" in lowered or "not loaded" in lowered or "no model" in lowered
+
+
+def _status_error_body(exc: APIStatusError) -> str:
+    try:
+        return str(exc.response.json())
+    except Exception:
+        return str(exc)
+
+
+def _raise_from_status(exc: APIStatusError, *, unloaded_msg: str) -> NoReturn:
+    if _is_unloaded_error(exc):
+        raise ModelUnavailableError(unloaded_msg) from exc
+    body = _status_error_body(exc)
+    raise ModelUnavailableError(f"LLM erro {exc.status_code}: {body}") from exc
 
 
 class LlmClient:
@@ -24,6 +51,63 @@ class LlmClient:
         )
         self.model = settings.lm_studio_model
 
+    def list_model_ids(self) -> list[str]:
+        try:
+            models = self._client.models.list()
+            return [m.id for m in models.data]
+        except Exception as exc:
+            logger.debug("Could not list models: %s", exc)
+            return []
+
+    def _ping_completion(self, model: str) -> None:
+        # Short timeout: unloaded models often hang instead of failing fast
+        ping = OpenAI(
+            base_url=self._settings.lm_studio_base_url_host,
+            api_key=self._settings.lm_studio_api_key,
+            timeout=httpx.Timeout(8.0, connect=3.0),
+            max_retries=0,
+        )
+        ping.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": "ok"}],
+            max_tokens=1,
+            temperature=0,
+        )
+
+    def ensure_model_ready(self) -> None:
+        """
+        Verify a model is actually loaded (LM Studio lists downloaded models
+        even when none is loaded for inference).
+        """
+        # Only ping the configured model — LM Studio lists all downloads as "available"
+        try:
+            self._ping_completion(self.model)
+            logger.info("LLM model ready: %s", self.model)
+            return
+        except APIConnectionError as exc:
+            msg = str(exc).casefold()
+            if "timeout" in msg or "timed out" in msg:
+                raise ModelUnavailableError(
+                    f"Modelo '{self.model}' nao responde (timeout). "
+                    "No LM Studio: Load no modelo + Local Server Start (porta 1234)."
+                ) from exc
+            raise NetworkError(
+                f"Nao consegui ligar a {self._settings.lm_studio_base_url_host}: {exc}"
+            ) from exc
+        except APITimeoutError as exc:
+            raise ModelUnavailableError(
+                f"Modelo '{self.model}' nao responde. "
+                "No LM Studio: Load no modelo + Local Server Start (porta 1234)."
+            ) from exc
+        except APIStatusError as exc:
+            _raise_from_status(
+                exc,
+                unloaded_msg=(
+                    f"Modelo '{self.model}' esta unloaded. "
+                    "No LM Studio: escolhe o modelo, Load, e Server ON."
+                ),
+            )
+
     def create_completion(self, **kwargs):
         last_exc: Exception | None = None
         for attempt in range(2):
@@ -37,4 +121,12 @@ class LlmClient:
                 raise NetworkError(str(exc)) from exc
             except APITimeoutError as exc:
                 raise PipelineTimeoutError(str(exc)) from exc
+            except APIStatusError as exc:
+                _raise_from_status(
+                    exc,
+                    unloaded_msg=(
+                        "Modelo nao carregado no LM Studio. "
+                        "Carrega o modelo e mantem o servidor local activo."
+                    ),
+                )
         raise NetworkError(str(last_exc))

@@ -11,16 +11,10 @@ import numpy as np
 import sounddevice as sd
 
 from friday.audio.resample import resample
+from friday.audio.portaudio_util import wasapi_extra_for
 
 logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=1)
-
-
-def _wasapi_extra():
-    try:
-        return sd.WasapiSettings(exclusive=False)
-    except AttributeError:
-        return None
 
 
 def _device_native_sr(device: int | None) -> int | None:
@@ -56,7 +50,7 @@ def _play_wav_blocking(path: Path, output_device: int | None = None) -> None:
             audio = resample(audio, sample_rate, target_sr)
             sample_rate = target_sr
 
-        extra = _wasapi_extra()
+        extra = wasapi_extra_for(output_device)
         try:
             sd.play(
                 audio,
@@ -88,7 +82,7 @@ def _play_pcm_blocking(
     if target_sr and target_sr != sample_rate:
         audio = resample(audio, sample_rate, target_sr)
         sample_rate = target_sr
-    extra = _wasapi_extra()
+    extra = wasapi_extra_for(output_device)
     sd.play(audio, sample_rate, device=output_device, extra_settings=extra)
     sd.wait()
 

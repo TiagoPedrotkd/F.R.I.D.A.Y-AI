@@ -9,6 +9,10 @@ class NetworkError(VoicePipelineError):
     """LLM or external service unreachable."""
 
 
+class ModelUnavailableError(VoicePipelineError):
+    """LLM server reachable but no model loaded / wrong model id."""
+
+
 class APITimeoutError(VoicePipelineError):
     """LLM request exceeded timeout."""
 

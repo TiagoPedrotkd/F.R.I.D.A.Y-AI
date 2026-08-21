@@ -8,7 +8,7 @@ Every skill implements:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | `str` | Unique identifier (OpenAI function name), e.g. `get_current_time` |
+| `name` | `str` | Unique identifier (OpenAI function name) |
 | `description` | `str` | Natural language description for the LLM |
 | `parameters` | `dict` | JSON Schema (OpenAI function format) |
 | `execute()` | async | Runs the skill and returns `SkillResult` |
@@ -19,49 +19,51 @@ Every skill implements:
 @dataclass
 class SkillResult:
     success: bool
-    content: str              # Text for the LLM to present to the user
+    content: str              # Text for the LLM / user
     error: str | None = None
     metadata: dict | None = None
 ```
 
-On failure, set `success=False` and populate `error`. The tool runner converts this to a tool message without crashing the pipeline.
+On failure, set `success=False` and populate `error` with an honest PT message.
 
 ## Registration
 
 ```python
-from friday.skills.registry import SkillRegistry
-from friday.skills.mock.time_skill import TimeSkill
+from friday.skills.registry import default_registry
 
-registry = SkillRegistry()
-registry.register(TimeSkill())
+registry = default_registry()
 tools = registry.to_openai_tools()
 ```
 
 ## Tool call flow
 
-1. User speaks → STT → LLM receives message + tools list
-2. LLM returns native `tool_calls` **or** JSON fallback (Bionic)
+1. User input → optional intent router → skill **or** LLM + tools
+2. LLM returns native `tool_calls` **or** JSON fallback
 3. `ToolRunner` invokes `registry.execute(name, arguments)`
-4. Result is sent back as `{"role": "tool", "tool_call_id": "...", "content": "..."}`
-5. LLM produces final spoken reply (max 3 tool rounds)
+4. Result is sent back as a tool message; LLM may finalize
+5. Max tool rounds: `LLM_MAX_TOOL_ROUNDS` (default 3)
 
-### ToolCall (internal)
+## Skills (Fase 1)
 
-```python
-@dataclass
-class ToolCall:
-    id: str
-    name: str
-    arguments: dict
-```
+| Skill | `name` | Example |
+|-------|--------|---------|
+| DateTime | `get_current_datetime` | "Que horas sao?" |
+| Joke | `tell_joke` | "Conta uma piada" |
+| System | `get_system_info` | "Que SO estou a usar?" |
+| Words | `word_count` | "Conta as palavras..." |
+| JSON | `format_json` | "Formata este JSON" |
+| Search | `search_web` | "Pesquisa o Phi-4" |
+| Fetch | `fetch_url` | "Le https://..." |
+| News | `get_world_news` | "Poe-me a par" |
+| Finance | `get_world_finance_news` | "Briefing financeiro" |
+| Monitors | `open_world_monitor` / `open_finance_world_monitor` | "Abre o monitor..." |
 
-## Mock skills (Fase 1)
+Alias: `get_current_time` → `get_current_datetime`.
 
-| Skill | `name` | Example trigger |
-|-------|--------|-----------------|
-| TimeSkill | `get_current_time` | "Que horas sao?" |
-| JokeSkill | `tell_joke` | "Conta uma piada" |
+Roadmap (nao implementado): parâmetro `country` + briefing por país —
+ver [noticias-financas-worldwide.md](noticias-financas-worldwide.md).
 
-## Extension (Fase 2+)
+## Extension
 
-New skill = new file + `registry.register()` — zero changes to `pipeline/loop.py`.
+New skill = new file + `registry.register()` + optional intent patterns —
+zero changes to `pipeline/loop.py`.

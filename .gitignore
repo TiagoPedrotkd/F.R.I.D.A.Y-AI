@@ -239,3 +239,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local Cursor MCP (use mcp.json.example)
+.cursor/mcp.json
+!.cursor/mcp.json.example
+
+
+# Generated monitor snapshots (created by news skills)
+friday/monitors/*_snapshot.html
+friday/monitors/data/

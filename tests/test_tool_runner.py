@@ -113,7 +113,8 @@ async def test_native_tool_call_then_reply():
         ]
     )
     runner = ToolRunner(settings, registry, client=client)  # type: ignore[arg-type]
-    reply = await runner.chat_with_tools("Que horas sao?")
+    # Avoid intent router: question must not match time/joke patterns
+    reply = await runner.chat_with_tools("Qual e a temperatura exterior?")
     assert reply.tool_rounds == 1
     assert "15:00" in reply.text or "Sao" in reply.text
 
@@ -139,3 +140,20 @@ async def test_json_fallback_respond():
     reply = await runner.chat_with_tools("Como estas?")
     assert "Estou bem" in reply.text
     assert reply.tool_rounds == 0
+
+
+@pytest.mark.asyncio
+async def test_intent_router_bypasses_llm_for_time():
+    registry = default_registry()
+    settings = Settings()
+
+    class BoomClient:
+        model = "test"
+
+        def create_completion(self, **kwargs):
+            raise AssertionError("LLM should not be called for time intent")
+
+    runner = ToolRunner(settings, registry, client=BoomClient())  # type: ignore[arg-type]
+    reply = await runner.chat_with_tools("Que horas são?")
+    assert reply.tool_rounds == 1
+    assert "Sao" in reply.text or "sao" in reply.text.casefold()

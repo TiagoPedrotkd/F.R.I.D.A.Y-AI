@@ -4,28 +4,35 @@ import pytest
 
 from friday.pipeline.errors import UnknownSkillError
 from friday.skills.mock.joke_skill import JokeSkill
-from friday.skills.mock.time_skill import TimeSkill
 from friday.skills.registry import SkillRegistry, default_registry
 
 
 def test_register_and_export_tools():
+    from friday.skills.local.datetime_skill import DateTimeSkill
+    from friday.skills.mock.joke_skill import JokeSkill
+
     registry = SkillRegistry()
-    registry.register(TimeSkill())
+    registry.register(DateTimeSkill())
     registry.register(JokeSkill())
     tools = registry.to_openai_tools()
     names = {t["function"]["name"] for t in tools}
-    assert names == {"get_current_time", "tell_joke"}
+    assert names == {"get_current_datetime", "tell_joke"}
     assert all(t["type"] == "function" for t in tools)
 
 
 def test_default_registry_has_mock_skills():
     registry = default_registry()
-    assert set(registry.names()) == {"get_current_time", "tell_joke"}
+    names = set(registry.names())
+    assert "get_current_datetime" in names
+    assert "get_current_time" in names
+    assert "tell_joke" in names
 
 
 @pytest.mark.asyncio
 async def test_time_skill_execute():
-    skill = TimeSkill()
+    from friday.skills.local.datetime_skill import DateTimeSkill
+
+    skill = DateTimeSkill()
     result = await skill.execute({"timezone": "Europe/Lisbon"})
     assert result.success
     assert "Sao" in result.content or "sao" in result.content.lower()

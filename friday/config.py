@@ -53,8 +53,20 @@ class Settings(BaseSettings):
     speech_start_db: float = Field(default=-55.0, alias="SPEECH_START_DB")
     record_silence_ms: int = Field(default=1200, alias="RECORD_SILENCE_MS")
 
+    # WebRTC VAD + preprocess (Enter hybrid capture)
+    webrtc_vad_mode: int = Field(default=3, alias="WEBRTC_VAD_MODE")
+    webrtc_silence_ms: int = Field(default=2000, alias="WEBRTC_SILENCE_MS")
+    preproc_highpass_hz: float = Field(default=100.0, alias="PREPROC_HIGHPASS_HZ")
+
     # Memory
-    max_context_messages: int = Field(default=10, alias="MAX_CONTEXT_MESSAGES")
+    max_context_messages: int = Field(default=20, alias="MAX_CONTEXT_MESSAGES")
+
+    # News / monitors / web
+    world_monitor_url: str = Field(default="", alias="WORLD_MONITOR_URL")
+    finance_monitor_url: str = Field(default="", alias="FINANCE_MONITOR_URL")
+    news_world_feeds: str = Field(default="", alias="NEWS_WORLD_FEEDS")
+    news_finance_feeds: str = Field(default="", alias="NEWS_FINANCE_FEEDS")
+    web_search_max_results: int = Field(default=5, alias="WEB_SEARCH_MAX_RESULTS")
 
     # User-facing error messages (Portuguese)
     error_network_pt: str = Field(
@@ -72,6 +84,10 @@ class Settings(BaseSettings):
     error_timeout_pt: str = Field(
         default="Demorei demasiado a pensar.",
         alias="ERROR_TIMEOUT_PT",
+    )
+    error_model_pt: str = Field(
+        default="O modelo de linguagem nao esta carregado. Abre o LM Studio e carrega um modelo.",
+        alias="ERROR_MODEL_PT",
     )
 
     models_dir: Path = Field(default=_REPO_ROOT / "models")

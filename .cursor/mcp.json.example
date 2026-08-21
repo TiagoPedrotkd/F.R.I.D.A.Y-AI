@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "friday": {
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "friday.mcp_server.server"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

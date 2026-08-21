@@ -51,7 +51,10 @@ class WhisperEngine:
             beam_size=5,
             vad_filter=self._vad_filter,
             condition_on_previous_text=False,
-            initial_prompt="Olá, fala português de Portugal.",
+            initial_prompt=(
+                "Comandos em portugues: que horas sao, conta uma piada, "
+                "qual e a data de hoje."
+            ),
             no_speech_threshold=0.4,
         )
         parts = [seg.text.strip() for seg in segments if seg.text.strip()]

@@ -171,12 +171,14 @@ async def _process_turn(
         metrics.mark("capture_end")
         metrics.mark("stt_end")
 
-        reply = await llm.chat_with_tools(text, memory.messages)
+        reply = await llm.chat_with_tools(text, memory.messages, session=memory)
         metrics.mark("llm_end")
         logger.info("LLM reply (%d tool rounds): %s", reply.tool_rounds, reply.text)
 
         memory.add_user(text)
         memory.add_assistant(reply.text)
+        if reply.skill_metadata:
+            memory.update_from_skill_metadata(reply.skill_metadata)
 
         await _safe_speak(tts, reply.text)
         metrics.mark("tts_end")

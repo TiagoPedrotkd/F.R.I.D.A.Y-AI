@@ -4,7 +4,8 @@ See [skills-contract.md](skills-contract.md) for the formal interface.
 See [conversacao.md](conversacao.md) for the full conversational contract.
 See [mcp.md](mcp.md) for the MCP server (summarize / explain_code).
 See [noticias-financas-worldwide.md](noticias-financas-worldwide.md) for
-country-scoped news & finance (design — not implemented yet).
+country-scoped news & finance (phases A–C implemented: `country`, briefing,
+list countries, RSS cache).
 
 ## Quick reference
 

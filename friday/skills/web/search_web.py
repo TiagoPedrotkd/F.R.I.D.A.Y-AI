@@ -1,13 +1,21 @@
-"""Web search via DuckDuckGo."""
+"""Web search via DuckDuckGo (structured results + sources)."""
 
 from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import urlparse
 
 from friday.skills.base import SkillResult
 
 logger = logging.getLogger(__name__)
+
+
+def _hostname(url: str) -> str:
+    try:
+        return (urlparse(url).hostname or "").removeprefix("www.")
+    except Exception:
+        return ""
 
 
 class SearchWebSkill:
@@ -78,16 +86,39 @@ class SearchWebSkill:
                 error="Nao encontrei resultados suficientes.",
             )
 
-        lines = []
+        structured: list[dict[str, str]] = []
+        lines: list[str] = []
         for i, item in enumerate(results[:max_results], 1):
-            title = item.get("title") or item.get("href") or "Sem titulo"
-            body = item.get("body") or item.get("snippet") or ""
-            href = item.get("href") or item.get("link") or ""
-            lines.append(f"{i}. {title} — {body[:160]} ({href})")
+            title = (item.get("title") or item.get("href") or "Sem titulo").strip()
+            snippet = (item.get("body") or item.get("snippet") or "").strip()
+            href = (item.get("href") or item.get("link") or "").strip()
+            source = _hostname(href)
+            date = str(item.get("date") or item.get("published") or "").strip()
+            entry = {
+                "title": title,
+                "url": href,
+                "snippet": snippet[:240],
+                "source": source,
+            }
+            if date:
+                entry["date"] = date
+            structured.append(entry)
+            src_bit = f" [{source}]" if source else ""
+            lines.append(f"{i}. {title}{src_bit} — {snippet[:160]} ({href})")
 
+        sources = ", ".join(
+            dict.fromkeys(e["source"] for e in structured if e.get("source"))
+        )
         content = f"Resultados para '{query}':\n" + "\n".join(lines)
+        if sources:
+            content += f"\nFontes: {sources}."
+
         return SkillResult(
             success=True,
             content=content,
-            metadata={"query": query, "count": len(results)},
+            metadata={
+                "query": query,
+                "count": len(structured),
+                "results": structured,
+            },
         )

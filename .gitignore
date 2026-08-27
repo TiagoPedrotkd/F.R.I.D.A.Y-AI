@@ -248,3 +248,7 @@ __marimo__/
 # Generated monitor snapshots (created by news skills)
 friday/monitors/*_snapshot.html
 friday/monitors/data/
+
+# Node / web UI
+node_modules/
+apps/web/dist/

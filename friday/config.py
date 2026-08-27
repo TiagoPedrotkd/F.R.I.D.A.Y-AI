@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     news_world_feeds: str = Field(default="", alias="NEWS_WORLD_FEEDS")
     news_finance_feeds: str = Field(default="", alias="NEWS_FINANCE_FEEDS")
     web_search_max_results: int = Field(default=5, alias="WEB_SEARCH_MAX_RESULTS")
+    auto_open_monitors: bool = Field(default=False, alias="AUTO_OPEN_MONITORS")
 
     # User-facing error messages (Portuguese)
     error_network_pt: str = Field(

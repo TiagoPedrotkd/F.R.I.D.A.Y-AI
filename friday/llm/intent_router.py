@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from friday.skills.news.countries import extract_country_from_utterance
+
 
 def _normalize(text: str) -> str:
     text = text.casefold().strip()
@@ -69,11 +71,15 @@ _NEWS_PATTERNS = (
     r"\bmundial\b",
     r"\bpoe[- ]?me a par\b",
     r"\bbriefing mundial\b",
+    r"\bbriefing\b",
     r"\bworld update\b",
     r"\bwhat(?:'s| is) happening\b",
     r"\bbrief me\b",
     r"\bo que (esta|está) a acontecer\b",
     r"\bo que perdi\b",
+    r"\bo que se passa\b",
+    r"\bheadlines\b",
+    r"\bnews\b",
 )
 
 _FINANCE_PATTERNS = (
@@ -84,20 +90,60 @@ _FINANCE_PATTERNS = (
     r"\bmarket news\b",
     r"\bfinancial briefing\b",
     r"\bbriefing financeiro\b",
+    r"\bfinancas\b",
+    r"\bfinanças\b",
+    r"\bmarkets\b",
 )
 
 _OPEN_WORLD = (
     r"\babre o monitor mundial\b",
+    r"\babre o monitor\b",
     r"\bworld monitor\b",
     r"\bmapa de acontecimentos\b",
     r"\bmostra[- ]?me o mapa\b",
+    r"\bmonitor do\b",
+    r"\bmonitor da\b",
 )
 
 _OPEN_FINANCE = (
     r"\babre o monitor financeiro\b",
     r"\bfinance monitor\b",
     r"\bpainel dos mercados\b",
+    r"\bpainel financeiro\b",
     r"\bdashboard financeiro\b",
+)
+
+_CONTINUITY_FINANCE = (
+    r"\be as financ",
+    r"\be as finanç",
+    r"\band (the )?financ",
+    r"\band (the )?markets?\b",
+    r"\bwhat about (the )?financ",
+    r"\be os mercados\b",
+)
+
+_CONTINUITY_NEWS = (
+    r"\be as noticia",
+    r"\be as notícia",
+    r"\band (the )?news\b",
+    r"\bwhat about (the )?news\b",
+)
+
+_BRIEFING_PATTERNS = (
+    r"\bnoticias e financ",
+    r"\bnotícias e financ",
+    r"\bnews and finance\b",
+    r"\bcountry (briefing|update)\b",
+    r"\bbriefing (completo|do pais|do país)\b",
+)
+
+_LIST_COUNTRIES_PATTERNS = (
+    r"\bpaises suportados\b",
+    r"\bpaíses suportados\b",
+    r"\blista (os )?paises\b",
+    r"\blista (os )?países\b",
+    r"\bwhich countries\b",
+    r"\bsupported countries\b",
 )
 
 _SEARCH_PATTERNS = (
@@ -250,6 +296,34 @@ def _match_remember(raw: str, norm: str) -> tuple[str, dict] | None:
     return "remember", {"text": text or raw}
 
 
+def _match_country_routes(norm: str) -> tuple[str, dict] | None:
+    country = extract_country_from_utterance(norm)
+    country_args = {"country": country.code} if country else {}
+
+    if _any_pattern(norm, _LIST_COUNTRIES_PATTERNS):
+        return "list_supported_countries", {}
+    if country and _any_pattern(norm, _BRIEFING_PATTERNS):
+        return "get_country_briefing", {"country": country.code}
+    # Continuity utterances — country filled by ToolRunner from session
+    if _any_pattern(norm, _CONTINUITY_FINANCE):
+        return "get_world_finance_news", dict(country_args)
+    if _any_pattern(norm, _CONTINUITY_NEWS):
+        return "get_world_news", dict(country_args)
+    if _any_pattern(norm, _OPEN_FINANCE) or (
+        country and re.search(r"\bpainel financeiro\b|\bmonitor financeiro\b", norm)
+    ):
+        return "open_finance_world_monitor", dict(country_args)
+    if _any_pattern(norm, _OPEN_WORLD):
+        return "open_world_monitor", dict(country_args)
+    if _any_pattern(norm, _FINANCE_PATTERNS):
+        return "get_world_finance_news", dict(country_args)
+    if _any_pattern(norm, _NEWS_PATTERNS):
+        return "get_world_news", dict(country_args)
+    if country and re.search(r"\b(passa|acontece|update|situacao|situação)\b", norm):
+        return "get_world_news", {"country": country.code}
+    return None
+
+
 def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
     """
     Return (skill_name, arguments) if utterance maps to a known skill.
@@ -257,15 +331,9 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
     raw = user_text.strip()
     norm = _normalize(raw)
 
-    # Order matters: monitors/finance before general news; fetch before bare search
-    if _any_pattern(norm, _OPEN_WORLD):
-        return "open_world_monitor", {}
-    if _any_pattern(norm, _OPEN_FINANCE):
-        return "open_finance_world_monitor", {}
-    if _any_pattern(norm, _FINANCE_PATTERNS):
-        return "get_world_finance_news", {}
-    if _any_pattern(norm, _NEWS_PATTERNS):
-        return "get_world_news", {}
+    hit = _match_country_routes(norm)
+    if hit:
+        return hit
 
     hit = _match_datetime(norm)
     if hit:
@@ -295,7 +363,6 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
     if _any_pattern(norm, _JOKE_PATTERNS):
         return "tell_joke", {}
 
-    # Bare / near-bare URL
     return _match_fetch(raw, norm, url)
 
 

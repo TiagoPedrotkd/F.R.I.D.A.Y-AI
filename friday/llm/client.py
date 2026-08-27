@@ -59,12 +59,11 @@ class LlmClient:
             logger.debug("Could not list models: %s", exc)
             return []
 
-    def _ping_completion(self, model: str) -> None:
-        # Short timeout: unloaded models often hang instead of failing fast
+    def _ping_completion(self, model: str, *, timeout_s: float) -> None:
         ping = OpenAI(
             base_url=self._settings.lm_studio_base_url_host,
             api_key=self._settings.lm_studio_api_key,
-            timeout=httpx.Timeout(8.0, connect=3.0),
+            timeout=httpx.Timeout(timeout_s, connect=5.0),
             max_retries=0,
         )
         ping.chat.completions.create(
@@ -76,37 +75,80 @@ class LlmClient:
 
     def ensure_model_ready(self) -> None:
         """
-        Verify a model is actually loaded (LM Studio lists downloaded models
-        even when none is loaded for inference).
+        Verify LM Studio is up and the configured model can produce a token.
+        First load of large models (e.g. Phi-4) can take tens of seconds.
         """
-        # Only ping the configured model — LM Studio lists all downloads as "available"
+        base = self._settings.lm_studio_base_url_host
+        # Fast path: is the server listening?
         try:
-            self._ping_completion(self.model)
-            logger.info("LLM model ready: %s", self.model)
-            return
-        except APIConnectionError as exc:
-            msg = str(exc).casefold()
-            if "timeout" in msg or "timed out" in msg:
-                raise ModelUnavailableError(
-                    f"Modelo '{self.model}' nao responde (timeout). "
-                    "No LM Studio: Load no modelo + Local Server Start (porta 1234)."
-                ) from exc
+            with httpx.Client(timeout=httpx.Timeout(5.0, connect=3.0)) as http:
+                resp = http.get(f"{base.rstrip('/')}/models")
+                resp.raise_for_status()
+        except httpx.ConnectError as exc:
             raise NetworkError(
-                f"Nao consegui ligar a {self._settings.lm_studio_base_url_host}: {exc}"
+                f"Nao consegui ligar a {base}: servidor recusou a ligacao. "
+                "Abre o LM Studio e inicia o Local Server (porta 1234)."
             ) from exc
-        except APITimeoutError as exc:
-            raise ModelUnavailableError(
-                f"Modelo '{self.model}' nao responde. "
-                "No LM Studio: Load no modelo + Local Server Start (porta 1234)."
+        except Exception as exc:
+            raise NetworkError(
+                f"Nao consegui ligar a {base}: {exc}"
             ) from exc
-        except APIStatusError as exc:
-            _raise_from_status(
-                exc,
-                unloaded_msg=(
-                    f"Modelo '{self.model}' esta unloaded. "
-                    "No LM Studio: escolhe o modelo, Load, e Server ON."
-                ),
-            )
+
+        # Cold start can be slow — allow up to max(60, configured timeout)
+        ping_timeout = max(60.0, float(self._settings.llm_timeout_seconds))
+        last_exc: Exception | None = None
+        for attempt in range(1, 3):
+            try:
+                logger.info(
+                    "A verificar modelo '%s' (tentativa %d/2, timeout %.0fs)...",
+                    self.model,
+                    attempt,
+                    ping_timeout,
+                )
+                self._ping_completion(self.model, timeout_s=ping_timeout)
+                logger.info("LLM model ready: %s", self.model)
+                return
+            except APIConnectionError as exc:
+                last_exc = exc
+                msg = str(exc).casefold()
+                if "timeout" in msg or "timed out" in msg:
+                    logger.warning(
+                        "Ping ao modelo demorou demasiado (tentativa %d/2)",
+                        attempt,
+                    )
+                    if attempt < 2:
+                        time.sleep(2.0)
+                        continue
+                    raise ModelUnavailableError(
+                        f"Modelo '{self.model}' nao responde a tempo. "
+                        "No LM Studio: confirma que o modelo esta em Load "
+                        "(barra de progresso concluida) e o Local Server ON. "
+                        f"Primeira resposta do Phi-4 pode demorar >{ping_timeout:.0f}s."
+                    ) from exc
+                raise NetworkError(f"Nao consegui ligar a {base}: {exc}") from exc
+            except APITimeoutError as exc:
+                last_exc = exc
+                logger.warning(
+                    "Timeout no ping do modelo (tentativa %d/2)",
+                    attempt,
+                )
+                if attempt < 2:
+                    time.sleep(2.0)
+                    continue
+                raise ModelUnavailableError(
+                    f"Modelo '{self.model}' nao responde a tempo. "
+                    "Espera o Load terminar no LM Studio e volta a correr. "
+                    f"(timeout {ping_timeout:.0f}s)"
+                ) from exc
+            except APIStatusError as exc:
+                _raise_from_status(
+                    exc,
+                    unloaded_msg=(
+                        f"Modelo '{self.model}' esta unloaded. "
+                        "No LM Studio: escolhe o modelo, Load, e Server ON."
+                    ),
+                )
+        raise ModelUnavailableError(str(last_exc))
 
     def create_completion(self, **kwargs):
         last_exc: Exception | None = None

@@ -65,7 +65,9 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     from friday.skills.local.word_count import WordCountSkill
     from friday.skills.mock.joke_skill import JokeSkill
     from friday.skills.news import (
+        CountryBriefingSkill,
         FinanceNewsSkill,
+        ListSupportedCountriesSkill,
         OpenFinanceMonitorSkill,
         OpenWorldMonitorSkill,
         WorldNewsSkill,
@@ -91,14 +93,29 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
         WorldNewsSkill(
             feeds_csv=settings.news_world_feeds,
             monitor_url=settings.world_monitor_url,
-        )
+            auto_open_monitors=settings.auto_open_monitors,
+        ),
+        aliases=["get_news"],
     )
     registry.register(
         FinanceNewsSkill(
             feeds_csv=settings.news_finance_feeds,
             monitor_url=settings.finance_monitor_url,
-        )
+            auto_open_monitors=settings.auto_open_monitors,
+        ),
+        aliases=["get_finance"],
     )
+    registry.register(
+        CountryBriefingSkill(
+            world_feeds_csv=settings.news_world_feeds,
+            finance_feeds_csv=settings.news_finance_feeds,
+            world_monitor_url=settings.world_monitor_url,
+            finance_monitor_url=settings.finance_monitor_url,
+            auto_open_monitors=settings.auto_open_monitors,
+        ),
+        aliases=["country_update"],
+    )
+    registry.register(ListSupportedCountriesSkill())
     registry.register(OpenWorldMonitorSkill(monitor_url=settings.world_monitor_url))
     registry.register(
         OpenFinanceMonitorSkill(monitor_url=settings.finance_monitor_url)

@@ -1,8 +1,8 @@
 # Notícias e finanças worldwide (por país)
 
-**Estado:** desenho completo — **ainda não implementado**.  
-**Objectivo:** escolher um país (ou região) e perceber o que se passa em
-**notícias** e **finanças**, com a mesma qualidade que um briefing mundial genérico.
+**Estado:** fases **A–C implementadas** (perfil por país, intent, monitores
+centrados, `get_country_briefing`, `list_supported_countries`, cache RSS).
+Fases D/E (mais países, topic, MCP news, compare) ainda por fazer.
 
 Relacionado: [conversacao.md](conversacao.md) · [skills-contract.md](skills-contract.md)
 
@@ -288,11 +288,11 @@ Campo sugerido em metadata da skill: `{"country": "JP", "kind": "news"}`.
 
 | Fase | Entrega | Critério de pronto |
 |------|---------|-------------------|
-| **A** | `CountryProfile` + 8 países piloto + `country` nas 2 skills | “Notícias do Japão” devolve headlines reais |
-| **B** | Intent PT/EN + monitores por país | Abre snapshot centrado no país |
-| **C** | `get_country_briefing` + `list_supported_countries` + cache | Um pedido = news+finance |
-| **D** | Expandir catálogo (18+), topic filter, MCP | Cobertura worldwide útil |
-| **E** | `compare_countries_*`, market hours, FX via search controlado | Extras |
+| **A** | `CountryProfile` + 9 países piloto + `country` nas 2 skills | Feito — `friday/skills/news/countries.py` |
+| **B** | Intent PT/EN + monitores por país | Feito — intent + snapshot centrado |
+| **C** | `get_country_briefing` + `list_supported_countries` + cache | Feito — cache 10 min em `data/news_cache/` |
+| **D** | Expandir catálogo (18+), topic filter, MCP | Pendente |
+| **E** | `compare_countries_*`, market hours, FX via search controlado | Pendente |
 
 Ordem recomendada: **A → B → C**; D/E quando a base estiver estável.
 

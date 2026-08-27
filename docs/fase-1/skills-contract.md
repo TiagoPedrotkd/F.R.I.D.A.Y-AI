@@ -54,14 +54,18 @@ tools = registry.to_openai_tools()
 | JSON | `format_json` | "Formata este JSON" |
 | Search | `search_web` | "Pesquisa o Phi-4" |
 | Fetch | `fetch_url` | "Le https://..." |
-| News | `get_world_news` | "Poe-me a par" |
-| Finance | `get_world_finance_news` | "Briefing financeiro" |
+| News | `get_world_news` | "Poe-me a par" / "Noticias do Japao" (`country`) |
+| Finance | `get_world_finance_news` | "Briefing financeiro" / "Financas na Alemanha" |
+| Country briefing | `get_country_briefing` | "Noticias e financas em Portugal" |
+| Countries | `list_supported_countries` | "Que paises suportados?" |
 | Monitors | `open_world_monitor` / `open_finance_world_monitor` | "Abre o monitor..." |
 
-Alias: `get_current_time` → `get_current_datetime`.
+Alias: `get_current_time` → `get_current_datetime`; `get_news` / `get_finance` / `country_update`.
 
-Roadmap (nao implementado): parâmetro `country` + briefing por país —
-ver [noticias-financas-worldwide.md](noticias-financas-worldwide.md).
+Piloto: `WW, PT, ES, FR, DE, GB, US, BR, JP` — ver [noticias-financas-worldwide.md](noticias-financas-worldwide.md).
+
+Config: `AUTO_OPEN_MONITORS` (default false). Prompt: [conversacao.md](conversacao.md).
+Nao existem `read_webpage` nem `get_system_status`.
 
 ## Extension
 

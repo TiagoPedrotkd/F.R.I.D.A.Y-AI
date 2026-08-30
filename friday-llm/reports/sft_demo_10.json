@@ -1,0 +1,28 @@
+{
+  "run_id": "sft-demo-10",
+  "phase": "sft",
+  "finished_at": "2026-08-30T20:42:10.726201+00:00",
+  "base_model": "Qwen/Qwen2.5-0.5B",
+  "output_dir": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\sft-demo-10",
+  "adapter_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10\\adapter",
+  "train_file": "friday-llm/data/sft/seed_sft_train.jsonl",
+  "train_loss": 3.5884511629740397,
+  "eval_loss": 3.3902130126953125,
+  "n_train": 11,
+  "n_eval": 1,
+  "quant_mode": "nf4",
+  "resumed_from": null,
+  "checkpoints": [
+    {
+      "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\sft-demo-10\\checkpoint-15",
+      "step": 15,
+      "eval_loss": 3.3902130126953125,
+      "train_loss": 2.9183
+    }
+  ],
+  "categories_train": {
+    "other": 11
+  },
+  "skipped_train": false,
+  "notes": "SFT run \u2014 production model unchanged."
+}

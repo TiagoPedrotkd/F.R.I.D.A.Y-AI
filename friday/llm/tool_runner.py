@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
 from friday.config import Settings
 from friday.llm.client import LlmClient
 from friday.llm.intent_router import match_skill_with_args
-from friday.llm.prompts import FRIDAY_SYSTEM_PROMPT, JSON_FALLBACK_INSTRUCTION
+from friday.llm.prompts import JSON_FALLBACK_INSTRUCTION, build_system_prompt
 from friday.memory.short_term import ShortTermMemory
 from friday.skills.registry import SkillRegistry
 
@@ -166,14 +167,20 @@ class ToolRunner:
         registry: SkillRegistry,
         client: LlmClient | None = None,
         session: ShortTermMemory | None = None,
+        state_emit: Callable[[str], Awaitable[None]] | None = None,
     ) -> None:
         self._settings = settings
         self._registry = registry
         self._client = client or LlmClient(settings)
         self._session = session
+        self._state_emit = state_emit
 
     def bind_session(self, session: ShortTermMemory) -> None:
         self._session = session
+
+    async def _emit_state(self, state: str) -> None:
+        if self._state_emit:
+            await self._state_emit(state)
 
     def _known_skill(self, name: str) -> bool:
         return name in self._registry.names()
@@ -192,6 +199,7 @@ class ToolRunner:
                 tool_rounds=1,
             )
         args = _inject_session_country(skill_name, arguments or {}, self._session)
+        await self._emit_state("tool_calling")
         result = await self._registry.execute(skill_name, args)
         if self._session:
             self._session.update_from_skill_metadata(result.metadata)
@@ -239,7 +247,10 @@ class ToolRunner:
             memory_note = ""
 
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": FRIDAY_SYSTEM_PROMPT},
+            {
+                "role": "system",
+                "content": build_system_prompt(self._settings.friday_user_address),
+            },
             {
                 "role": "system",
                 "content": JSON_FALLBACK_INSTRUCTION,
@@ -313,6 +324,7 @@ class ToolRunner:
                     )
                     continue
                 args = _inject_session_country(tc.name, tc.arguments, self._session)
+                await self._emit_state("tool_calling")
                 result = await self._registry.execute(tc.name, args)
                 if self._session:
                     self._session.update_from_skill_metadata(result.metadata)

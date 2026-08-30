@@ -121,6 +121,17 @@ def _register_local_tools(mcp: Any) -> None:
             return "Nao encontrei nada relacionado na memoria."
         return "Memoria:\n" + "\n".join(f"- {h}" for h in hits)
 
+    @mcp.tool(name="search_docs")
+    async def search_docs(query: str, top_k: int = 3) -> str:
+        """Pesquisa documentos internos autorizados (RAG). Cita fontes; admite se vazio."""
+        from friday.config import get_settings
+        from friday.skills.rag.search_docs import SearchDocsSkill
+
+        result = await SearchDocsSkill(settings=get_settings()).execute(
+            {"query": query, "top_k": top_k}
+        )
+        return result.content if result.success else (result.error or "Erro na pesquisa.")
+
     @mcp.resource("friday://capabilities")
     def capabilities() -> str:
         return json.dumps(
@@ -133,6 +144,7 @@ def _register_local_tools(mcp: Any) -> None:
                     "get_system_info",
                     "remember",
                     "recall",
+                    "search_docs",
                 ],
             },
             indent=2,

@@ -23,7 +23,7 @@ O browser **nunca** liga ao MCP. O CLI `friday-voice` continua a existir em para
 | POST | `/v1/chat` | `{session_id, text}` → reply + activity + ui |
 | POST | `/v1/confirm` | `{session_id, decision: confirm\|cancel}` |
 | POST | `/v1/stt` | Upload WAV → texto |
-| POST | `/v1/tts` | Texto → `audio/wav` |
+| POST | `/v1/tts` | `{text, session_id?, rate?, language?}` → `audio/wav` |
 | GET | `/v1/sessions/{id}/events` | SSE (`state`, `activity`, …) |
 | GET | `/monitors/{name}` | Snapshots HTML (sem path traversal) |
 
@@ -55,9 +55,13 @@ Se o LM / API estiver indisponível, `/v1/status` devolve `demo: true` e a UI us
 
 ## Preferências (localStorage)
 
-Idioma, TTS, volume, autoplay, interrupt, auto-open monitors, alto contraste, reduzir movimento, demo.
+Idioma, TTS, volume, **velocidade TTS (rate)**, autoplay, interrupt, auto-open monitors, alto contraste, reduzir movimento, demo.
 
 Abstrações Tauri-ready: `apps/web/src/platform/{audio,storage,links,config}.ts`.
+
+## Voz e personalidade
+
+Ver [`voz.md`](voz.md) — tratamento Senhor/Sir, Piper, `PIPER_LENGTH_SCALE`, troca para `en_GB`.
 
 ## Limitações Fase 1
 

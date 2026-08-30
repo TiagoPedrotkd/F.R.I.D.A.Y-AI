@@ -1,0 +1,34 @@
+run_id: friday-fase5-rag
+seed: 42
+paths:
+  registry: friday-llm/data/registry/datasets.jsonl
+  extracted: friday-llm/data/extracted/repo_docs.jsonl
+  seeds: friday-llm/data/rag/friday_docs_seed.jsonl
+  chunks: friday-llm/data/rag/chunks.jsonl
+  index_dir: data/rag_chroma
+repo_docs:
+  globs:
+    - docs/**/*.md
+    - friday-llm/README.md
+    - friday-llm/reports/phase0_audit.md
+  license: Apache-2.0
+  language: pt
+excluded_paths:
+  - data/chroma
+  - data/news_cache
+  - apps/web/src/demo
+  - tests
+  - friday-llm/data/evaluation
+  - friday-llm/tests
+rag:
+  chunk_chars: 2000
+  chunk_overlap: 200
+  dataset_id: friday-rag-docs-v1
+embedding_model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+report_json: friday-llm/reports/phase5_rag_build.json
+report_md: friday-llm/reports/phase5_rag_report.md
+stats_json: friday-llm/reports/phase5_rag_stats.json
+smoke_queries:
+  - "O que diz o manual sobre VLAN IoT?"
+  - "Como ligar ao LM Studio?"
+  - "Tres camadas de conhecimento"

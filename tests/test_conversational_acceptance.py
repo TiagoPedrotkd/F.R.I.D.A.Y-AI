@@ -283,9 +283,14 @@ async def test_fetch_url_invalid_scheme():
 
 
 def test_prompt_has_no_phantom_tools():
-    from friday.llm.prompts import FRIDAY_SYSTEM_PROMPT
+    from friday.llm.prompts import FRIDAY_SYSTEM_PROMPT, build_system_prompt
 
     assert "read_webpage" not in FRIDAY_SYSTEM_PROMPT
     assert "get_system_status" not in FRIDAY_SYSTEM_PROMPT
     assert "get_country_briefing" in FRIDAY_SYSTEM_PROMPT
     assert "fetch_url" in FRIDAY_SYSTEM_PROMPT
+    assert "Senhor" in FRIDAY_SYSTEM_PROMPT
+    assert "Sir" in FRIDAY_SYSTEM_PROMPT
+    assert "chefe" in FRIDAY_SYSTEM_PROMPT.lower()
+    custom = build_system_prompt("Capitao")
+    assert 'Trata o utilizador por "Capitao"' in custom

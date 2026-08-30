@@ -1,0 +1,30 @@
+run_id: friday-pilot-v0
+seed: 42
+max_cpt_tokens: 2_000_000
+max_documents: 500
+languages:
+  - por
+  - eng
+prefer_pt_pt: true
+paths:
+  registry: friday-llm/data/registry/datasets.jsonl
+  raw: friday-llm/data/raw
+  cleaned: friday-llm/data/cleaned
+  pretraining: friday-llm/data/pretraining
+  sft: friday-llm/data/sft
+  evaluation: friday-llm/data/evaluation
+  rag: friday-llm/data/rag
+cleaning:
+  min_chars: 200
+  max_chars: 50000
+  drop_pii: true
+  exact_dedupe: true
+fineweb:
+  dataset: HuggingFaceFW/fineweb-2
+  # Stream only; never download full crawl.
+  stream: true
+  language_hint: por
+  max_samples: 80
+sft:
+  seed_file: friday-llm/data/sft/seed_sft.jsonl
+  holdout_ratio: 0.15

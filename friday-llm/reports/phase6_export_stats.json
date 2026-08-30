@@ -1,0 +1,53 @@
+{
+  "run_id": "friday-fase6-export",
+  "finished_at": "2026-08-29T22:39:50.572958+00:00",
+  "validation": {
+    "valid": true,
+    "sft_adapter": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\sft-smoke\\adapter",
+    "cpt_adapter": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-smoke\\adapter",
+    "merge_cpt": true,
+    "warnings": []
+  },
+  "merge": {
+    "merged_at": "2026-08-29T22:39:50.274040+00:00",
+    "base_model": "Qwen/Qwen2.5-0.5B",
+    "merged_hf_dir": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\export\\merged-friday-v1",
+    "cpt_adapter": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-smoke\\adapter",
+    "sft_adapter": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\sft-smoke\\adapter",
+    "merged_cpt": true,
+    "device_map": "cpu",
+    "warnings": []
+  },
+  "gguf": {
+    "status": "skipped",
+    "reason": "llama.cpp not found",
+    "files": [],
+    "errors": []
+  },
+  "manifest": {
+    "path": "friday-llm/reports/export_manifest.json",
+    "gguf_status": "skipped",
+    "gguf_file_count": 0
+  },
+  "eval_comparison": {
+    "baseline": {
+      "path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\reports\\baseline_phi4.json",
+      "model": "microsoft/phi-4",
+      "pass_rate": 0.467,
+      "mean_latency_s": 11.372,
+      "tool_call_rate": 0.0
+    },
+    "pilot": null,
+    "delta": null,
+    "notes": "Pilot eval not run yet. Load model in LM Studio and run with run_eval=true."
+  },
+  "eval_gate_passed": null,
+  "production_model_unchanged": true,
+  "production_model": "microsoft/phi-4",
+  "rollback": {
+    "env_var": "LM_STUDIO_MODEL",
+    "production_value": "microsoft/phi-4",
+    "candidate_suggested_id": null
+  },
+  "notes": "Export final: merge CPT+SFT → HF → GGUF. Phi-4 em producao inalterado. Para 7B: use_smoke_model false, adapters cpt-fase3-best e sft-fase4-best.\n"
+}

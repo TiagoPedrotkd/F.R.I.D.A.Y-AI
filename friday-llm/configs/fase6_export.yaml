@@ -1,0 +1,29 @@
+run_id: friday-fase6-export
+model_config: friday-llm/configs/base_model.yaml
+# Fonte configurável — usar sft-fase4-best após treino 7B; smoke para dev
+cpt_adapter: friday-llm/checkpoints/cpt-smoke/adapter
+sft_adapter: friday-llm/checkpoints/sft-smoke/adapter
+use_smoke_model: true
+merge_cpt: true
+output:
+  merged_hf: friday-llm/export/merged-friday-v1
+  gguf_dir: friday-llm/export/gguf
+  gguf_basename: friday-qwen25-smoke-v1
+quantization:
+  - Q4_K_M
+  - Q5_K_M
+llama_cpp:
+  path: ""
+  skip_if_missing: true
+eval:
+  baseline_path: friday-llm/reports/baseline_phi4.json
+  candidate_out: friday-llm/reports/phase6_eval_final.json
+  min_pass_rate_delta: -0.05
+run_eval: false
+report_md: friday-llm/reports/phase6_export_report.md
+report_json: friday-llm/reports/phase6_export_stats.json
+manifest_path: friday-llm/reports/export_manifest.json
+production_model: microsoft/phi-4
+notes: >
+  Export final: merge CPT+SFT → HF → GGUF. Phi-4 em producao inalterado.
+  Para 7B: use_smoke_model false, adapters cpt-fase3-best e sft-fase4-best.

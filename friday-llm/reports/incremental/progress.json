@@ -1,0 +1,19 @@
+{
+  "updated_at": "2026-08-30T21:51:21.424404+00:00",
+  "day": 4,
+  "docs_in_pool": 471,
+  "docs_used": 35,
+  "docs_remaining": 436,
+  "cumulative_docs": 35,
+  "tokens_est": 28240,
+  "added_this_day": 10,
+  "global_step_before": 100,
+  "planned_base": 100,
+  "max_steps": 140,
+  "steps_delta": 40,
+  "output_dir": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-incremental",
+  "config_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\configs\\incremental\\cpt_day_4.yaml",
+  "script_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\scripts\\cpt_day_4.ps1",
+  "use_smoke_model": false,
+  "bar": "[#-----------------------]"
+}

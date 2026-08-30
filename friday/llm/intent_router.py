@@ -148,10 +148,17 @@ _LIST_COUNTRIES_PATTERNS = (
 
 _SEARCH_PATTERNS = (
     r"\bpesquisa\b",
+    r"\bpesquisa na web\b",
+    r"\bpesquisa na internet\b",
     r"\bprocura\b",
+    r"\bprocura na web\b",
+    r"\bprocura na internet\b",
     r"\bsearch\b",
+    r"\bsearch the web\b",
     r"\bdescobre\b",
     r"\bprocura informacao\b",
+    r"\bgoogla\b",
+    r"\bno google\b",
 )
 
 _SYSTEM_PATTERNS = (
@@ -193,8 +200,13 @@ _JOKE_PATTERNS = (
 _REMEMBER_PATTERNS = (
     r"\bguarda (esta |isso |a )?conclus",
     r"\bguarda (isto|isso|esta ideia)\b",
+    r"\bguarda na memoria\b",
+    r"\bguarda na memória\b",
     r"\bmemoriza\b",
     r"\blembr[ae]-?te (disso|disto|que)\b",
+    r"\blembr[ae] que\b",
+    r"\bnao te esquecas que\b",
+    r"\bnão te esqueças que\b",
     r"\bremember (this|that)\b",
     r"\bsave this\b",
 )
@@ -202,6 +214,7 @@ _REMEMBER_PATTERNS = (
 _RECALL_PATTERNS = (
     r"\blembras?-?te\b",
     r"\bo que (guardamos|guardaste|memor)\b",
+    r"\bo que te pedi para lembrar\b",
     r"\bvolta ao assunto (anterior|guardado)\b",
     r"\brecall\b",
     r"\bwhat did (we|i) save\b",
@@ -243,6 +256,10 @@ def _match_search(raw: str, norm: str) -> tuple[str, dict] | None:
     query = _extract_quoted_or_after(
         raw,
         (
+            "pesquisa na web ",
+            "pesquisa na internet ",
+            "procura na web ",
+            "procura na internet ",
             "pesquisa ",
             "pesquisa o ",
             "pesquisa a ",
@@ -288,7 +305,12 @@ def _match_remember(raw: str, norm: str) -> tuple[str, dict] | None:
             "guarda esta conclusão: ",
             "guarda isto: ",
             "guarda isso: ",
+            "guarda na memoria: ",
+            "guarda na memória: ",
             "memoriza: ",
+            "memoriza que ",
+            "lembra que ",
+            "lembra-te que ",
             "remember this: ",
             "guarda ",
         ),
@@ -324,6 +346,15 @@ def _match_country_routes(norm: str) -> tuple[str, dict] | None:
     return None
 
 
+def _match_rag(raw: str) -> tuple[str, dict] | None:
+    from friday_llm.rag.router import route_query
+
+    decision = route_query(raw)
+    if decision.route == "rag":
+        return "search_docs", {"query": raw}
+    return None
+
+
 def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
     """
     Return (skill_name, arguments) if utterance maps to a known skill.
@@ -342,6 +373,10 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
     url = _extract_url(raw)
     hit = _match_fetch(raw, norm, url)
     if hit and (re.search(_FETCH_INTENT, norm) or raw.strip() == url):
+        return hit
+
+    hit = _match_rag(raw)
+    if hit:
         return hit
 
     hit = _match_search(raw, norm)

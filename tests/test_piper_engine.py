@@ -15,6 +15,14 @@ def test_replaces_urls():
     text = prepare_speech_text("Veja https://www.example.com/path/long")
     assert "https://" not in text
     assert "example.com" in text
+    assert "ligacao a" in text
+
+
+def test_replaces_urls_en():
+    text = prepare_speech_text("See https://www.example.com/docs", lang="en")
+    assert "https://" not in text
+    assert "example.com" in text
+    assert "link to" in text
 
 
 def test_list_to_speech():
@@ -34,6 +42,15 @@ def test_reexport_from_piper():
     assert reexport("**Oi**") == prepare_speech_text("**Oi**")
 
 
+def test_clamp_length_scale():
+    from friday.tts.piper_engine import clamp_length_scale
+
+    assert clamp_length_scale(1.0) == 1.0
+    assert clamp_length_scale(0.1) == 0.5
+    assert clamp_length_scale(9.0) == 2.0
+    assert clamp_length_scale(None, 1.05) == 1.05
+
+
 def test_synthesize_bytes_reads_and_deletes(tmp_path, monkeypatch):
     from friday.config import Settings
     from friday.tts.piper_engine import PiperEngine
@@ -42,7 +59,7 @@ def test_synthesize_bytes_reads_and_deletes(tmp_path, monkeypatch):
     wav.write_bytes(b"RIFF....WAVEfmt ")
 
     engine = PiperEngine(Settings())
-    monkeypatch.setattr(engine, "_synthesize_blocking", lambda text: wav)
+    monkeypatch.setattr(engine, "_synthesize_blocking", lambda text, **_kw: wav)
     data = engine.synthesize_bytes("ola")
     assert data.startswith(b"RIFF")
     assert not wav.exists()

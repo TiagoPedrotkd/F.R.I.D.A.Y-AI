@@ -249,6 +249,37 @@ __marimo__/
 friday/monitors/*_snapshot.html
 friday/monitors/data/
 
+# Runtime / personal / cache data (do not commit)
+data/
+!data/.gitkeep
+
+# F.R.I.D.A.Y. LLM heavy artifacts
+friday-llm/data/raw/**
+friday-llm/data/extracted/**
+friday-llm/data/cleaned/**
+friday-llm/data/deduplicated/**
+friday-llm/data/pretraining/**
+!friday-llm/data/raw/.gitkeep
+!friday-llm/data/extracted/.gitkeep
+!friday-llm/data/cleaned/.gitkeep
+!friday-llm/data/deduplicated/.gitkeep
+!friday-llm/data/pretraining/.gitkeep
+friday-llm/checkpoints/
+friday-llm/**/*.gguf
+friday-llm/**/*.safetensors
+friday-llm/**/*.bin
+friday-llm/reports/baseline_*.json
+friday-llm/reports/cpt_smoke.json
+friday-llm/reports/sft_smoke.json
+friday-llm/reports/pilot_build_stats.json
+friday-llm/reports/export_manifest.json
+friday-llm/reports/eval_after_*.json
+
+# Hugging Face / training caches
+.cache/
+**/huggingface/
+wandb/
+
 # Node / web UI
 node_modules/
 apps/web/dist/

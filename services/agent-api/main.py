@@ -113,6 +113,9 @@ class ConfirmRequest(BaseModel):
 class TtsRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     session_id: str | None = None
+    # UI prefs.rate (1.0 = normal). Mapped to Piper length_scale (inverse feel: higher rate = faster = lower scale).
+    rate: float | None = Field(default=None, ge=0.5, le=2.0)
+    language: str | None = Field(default=None, max_length=16)
 
 
 async def _probe_llm() -> dict[str, Any]:
@@ -413,7 +416,19 @@ async def tts(body: TtsRequest):
         if session:
             await session.emit("state", {"state": "speaking"})
     try:
-        wav = await asyncio.to_thread(_get_piper().synthesize_bytes, body.text)
+        # prefs.rate > 1 → speak faster → slightly lower Piper length_scale
+        length_scale = None
+        if body.rate is not None:
+            length_scale = max(0.5, min(2.0, 1.0 / float(body.rate)))
+        lang = (body.language or "pt").strip() or "pt"
+        piper = _get_piper()
+        wav = await asyncio.to_thread(
+            lambda: piper.synthesize_bytes(
+                body.text,
+                length_scale=length_scale,
+                lang=lang,
+            )
+        )
     except Exception as exc:
         logger.exception("TTS failed")
         raise HTTPException(503, f"TTS indisponivel: {exc}") from exc

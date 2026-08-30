@@ -1,0 +1,20 @@
+# Identidade do modelo base — registar revision/hash após download.
+model_id: Qwen/Qwen2.5-7B
+smoke_model_id: Qwen/Qwen2.5-0.5B  # infra smoke se 7B não estiver em disco
+revision: main
+license: Apache-2.0
+context_length: 32768
+preferred_precision: nf4
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+production_lm_studio_model: microsoft/phi-4
+# Nunca alterar LM_STUDIO_MODEL automaticamente.

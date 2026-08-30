@@ -1,0 +1,117 @@
+# Fase 5 — RAG e integração
+
+**Run:** `friday-fase5-rag`  
+**Gerado:** 2026-08-30T22:24:58.332702+00:00
+
+## Corpus
+
+- Documentos repo: **26** | seeds: **3**
+- Chunks: **58** → `D:\Repositories\F.R.I.D.A.Y-AI\friday-llm\data\rag\chunks.jsonl`
+
+## Índice vetorial
+
+- Modelo: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
+- Chunks indexados: **58**
+- Pasta: `D:\Repositories\F.R.I.D.A.Y-AI\data\rag_chroma`
+
+## Smoke (keyword/embedding)
+
+- Backend: `keyword`
+
+```json
+{
+  "O que diz o manual sobre VLAN IoT?": [
+    {
+      "text": "# Checklist VLAN — F.R.I.D.A.Y-AI\n\nExecutar **antes da Fase 3** (casa inteligente + câmaras).\n\n**Implementado (2026-08-19):** Guest Network isolada no **Cudy WR11000** em vez de VLAN 30/99 completa. Ver [rede-vlan-cudy-wr11000.md](rede-vlan-cudy-wr11000.md).\n\n## Pré-requisitos\n\n- [x] Confirmar que router suporta segmentação — **Cudy WR11000 @ 192.168.10.1**\n- [ ] Exportar configuração actual do router (backup) — ver passos abaixo\n\n### Backup router (manual — LuCI)\n\n1. Abrir [http://192.168.10.1](http://192.168.10.1) → login\n2. **System** → **Backup / Restore**\n3. **Generate archive** → guardar ficheiro `.tar.gz` em local seguro\n4. Marcar este item quando concluído\n\n## Criação de VLANs / isolamento IoT\n\n- [x] VLAN 10 — Main (`192.168.10.0/24`) — **LAN actual**\n- [x] Rede IoT isolada — **Gue",
+      "title": "checklist vlan",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/arquitectura/checklist-vlan.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.5714
+    },
+    {
+      "text": "# VLANs no WR11000 (OpenWrt/LuCI)\n\nGuia especifico para o router detectado em `192.168.10.1` (OpenWrt + LuCI, modelo **WR11000**).\n\n## Estado actual da tua rede\n\n| Item | Valor |\n|---|---|\n| Gateway / router | `192.168.10.1` |\n| PC hub (FRIDAY) | `192.168.10.131` |\n| Subnet actual | `192.168.10.0/24` |\n| DNS suffix | `lan` |\n\nA rede **Main (VLAN 10)** ja corresponde ao teu LAN actual. Vais **adicionar** VLAN 30 (IoT) e VLAN 99 (Mgmt) sem alterar o IP do PC.\n\n---\n\n## IMPORTANTE — antes de comecar\n\n1. **Faz backup** da configuracao: LuCI → System → Backup / Flash Operations → Generate archive\n2. Garante acesso **fisico** ao router (cabo Ethernet) — se algo correr mal, podes reset\n3. Aplica num momento em que podes reiniciar a rede se necessario\n4. **Nao tenho acesso ao teu router** — segues ",
+      "title": "rede vlan openwrt wr11000",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/arquitectura/rede-vlan-openwrt-wr11000.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.5714
+    },
+    {
+      "text": "# Rede IoT — Cudy WR11000 (Guest Network)\n\nConfiguracao aplicada em **2026-08-19** no router **Cudy WR11000** (`192.168.10.1`).\n\nSubstitui VLAN 30/99 completa (nao exposta na UI Cudy) por **Guest Network isolada** — suficiente para Fase 3.\n\n## Topologia actual\n\n| Rede | Subnet | Uso |\n|---|---|---|\n| **Main (LAN)** | `192.168.10.0/24` | PC hub, telemoveis, portateis |\n| **Guest 2.4G (IoT)** | Subnet guest isolada | Dispositivos IoT futuros |\n| **Mgmt** | Router admin @ `192.168.10.1` | Administracao |\n\n## Configuracao Guest Network\n\n| Setting | Valor |\n|---|---|\n| **2.4G Guest** | Activado |\n| **5G / 6G Guest** | Desactivado (por agora) |\n| **Access Filter** | Activado |\n| **Access intranet** | **OFF** (nao acede a `192.168.10.x`) |\n\n## Outras configuracoes\n\n| Item | Estado |\n|---|---|\n| I",
+      "title": "rede vlan cudy wr11000",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/arquitectura/rede-vlan-cudy-wr11000.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.4286
+    }
+  ],
+  "Como ligar ao LM Studio?": [
+    {
+      "text": "nl` **nunca** entra no treino. Phi-4 em produção permanece inalterado.\n\nRelatório: [`reports/phase4_sft_report.md`](reports/phase4_sft_report.md)  \nMelhor adapter: `checkpoints/sft-fase4-best/adapter`\n\n## Fase 5 — RAG e integração\n\nCorpus repo + seeds → embeddings locais → Chroma `friday_docs` em `data/rag_chroma/` → skill `search_docs` no agente (CLI + web).\n\n**Separado da memória pessoal:** `data/chroma/` (`friday_memory`) ≠ `data/rag_chroma/` (`friday_docs`).\n\n```powershell\npip install -e \".[rag,voice,api]\"\n\n# Build corpus + indexar + smoke + relatório\npython -m friday_llm.rag.cli --config friday-llm/configs/fase5_rag.yaml\n\n# Passos isolados\npython -m friday_llm.rag.cli --only build\npython -m friday_llm.rag.cli --only index\npython -m friday_llm.rag.cli --only smoke --query \"Como ligar a",
+      "title": "README",
+      "source": "repo_docs",
+      "url_or_document_id": "friday-llm/README.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 1.0
+    },
+    {
+      "text": "# Contas API — Preparatório Fase 1\n\nA Fase 0 usa **LM Studio local** — não são necessárias contas cloud para o Hello World.\n\nEste documento prepara a integração com APIs cloud nas fases seguintes.\n\n## Providers previstos\n\n| Provider | Uso típico | Dashboard |\n|---|---|---|\n| **Anthropic** | Raciocínio complexo, Claude | [console.anthropic.com](https://console.anthropic.com) |\n| **OpenAI** | Ecossistema amplo, GPT | [platform.openai.com](https://platform.openai.com) |\n\n## Quando criar contas\n\n- **Fase 1** — quando o orquestrador precisar de LLM cloud como fallback ou complemento ao local\n- Não bloqueia a conclusão da Fase 0\n\n## Setup recomendado (quando activar)\n\n1. Criar conta no provider escolhido\n2. Gerar API key com permissões mínimas\n3. Adicionar ao `.env` local (nunca commitar):\n\n```e",
+      "title": "contas api",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/fase-0/contas-api.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.8
+    },
+    {
+      "text": "# Decisões de Hardware — F.R.I.D.A.Y-AI\n\n## Contexto\n\nOrçamento inicial: **0€**. O PC Windows actual (`192.168.10.131`, GPU NVIDIA dedicada) actua como hub para todas as fases iniciais. Hardware adicional só quando houver orçamento.\n\n## Hardware actual (0€)\n\n| Componente | Uso | Estado |\n|---|---|---|\n| **PC Windows** (hub) | Docker, LM Studio, dev, orquestração | Activo — Fase 0 validada |\n| **GPU NVIDIA dedicada** | LLM, Whisper, Frigate | Disponível |\n| **Router VLAN-capable** | Segmentação IoT | Disponível — configurar antes Fase 3 |\n| **Disco interno PC** | OS + modelos + gravações | Em uso |\n\n### Papel do PC Windows\n\n| Função | Detalhe |\n|---|---|\n| Desenvolvimento | Cursor, Git, Docker Desktop |\n| LLM local | LM Studio (API OpenAI-compatible) |\n| Inferência GPU | Modelos 7B–14B quan",
+      "title": "decisoes hardware",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/fase-0/decisoes-hardware.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.8
+    }
+  ],
+  "Tres camadas de conhecimento": [
+    {
+      "text": "# Contrato conversacional — Fase 1\n\nA FRIDAY combina **conversa geral** (modelo local) com **ferramentas**\n(skills). O utilizador fala naturalmente; nao ha palavras magicas obrigatorias.\n\n## Arquitectura\n\n```text\nSTT / texto → ToolRunner\n               ├─ intent_router (frases obvias PT/EN)\n               └─ LM Studio (tool calling / JSON fallback)\n                    → SkillRegistry → resposta\n                    → prepare_speech_text → Piper TTS\n```\n\nSessao (`ShortTermMemory`): historico curto + `last_country`,\n`last_news_context`, `last_language`, `last_monitor_type`.\n\n## 1. Conversacao geral (sem tool)\n\nCumprimentos, explicacoes, resumos, reescrita, traducao, escrita, brainstorm,\nplaneamento, comparacoes e programacao — o modelo local responde directamente.\nLimitacao: conhecimento do m",
+      "title": "conversacao",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/fase-1/conversacao.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.5
+    },
+    {
+      "text": "# MCP — Model Context Protocol (F.R.I.D.A.Y)\n\n## O que e MCP? (passo a passo)\n\n### 1. Problema que resolve\n\nAssistentes (Cursor, Claude Desktop, etc.) precisam de **ferramentas externas**\nde forma padronizada: ler ficheiros, chamar APIs, resumir texto, etc.\nSem MCP, cada app inventa o seu plugin. Com MCP, ha um **contrato unico**.\n\n### 2. Tres pecas\n\n| Peca | Papel |\n|------|--------|\n| **Host** | A aplicacao (ex.: Cursor) |\n| **Client** | Dentro do Host, liga-se a servidores MCP |\n| **Server** | O teu programa (ex.: `friday-mcp`) que expoe tools/prompts/resources |\n\n```text\n[Cursor Host] --stdio/HTTP--> [friday-mcp Server]\n                                 |- tools (summarize, explain_code, ...)\n                                 |- prompts (templates)\n                                 |- res",
+      "title": "mcp",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/fase-1/mcp.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.5
+    },
+    {
+      "text": "ountries` | Lista códigos/nomes que a FRIDAY conhece |\n| `compare_countries_news` | 2 países, headlines lado a lado (fase 2) |\n| `get_market_hours` | Mercado aberto/fechado + TZ (derivado do perfil) |\n\nAlias úteis: `get_news`, `get_finance`, `country_update`.\n\n---\n\n## 6. Fontes de dados\n\n### Estratégia em camadas\n\n1. **RSS do perfil do país** (`news_feeds` / `finance_feeds`)\n2. **Agregador com `gl`/`hl`** (ex. Google News RSS por país — verificar ToS/uso)\n3. **Fallback** `search_web` com query `\"top news {country}\"` / `\"markets {country}\"` e aviso “via pesquisa, nao feed dedicado”\n4. **Nunca** LLM como fonte de headlines\n\n### Exemplos de feeds (a validar na implementação)\n\n| País | Notícias (exemplos) | Finanças (exemplos) |\n|------|---------------------|---------------------|\n| WW | BBC W",
+      "title": "noticias financas worldwide",
+      "source": "repo_docs",
+      "url_or_document_id": "docs/fase-1/noticias-financas-worldwide.md",
+      "captured_at_or_version": "git",
+      "language": "pt",
+      "score": 0.5
+    }
+  ]
+}
+```
+
+## Integração agente
+
+- Skill `search_docs` no ToolRunner (CLI + agent-api)
+- Router: documento/manual → RAG; notícias/hora → tools
+- Phi-4 em produção inalterado (`LM_STUDIO_MODEL`)

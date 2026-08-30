@@ -1,0 +1,14 @@
+run_id: friday-fase2-pilot
+seed: 42
+cpt_config: friday-llm/configs/cpt_fase2_pilot.yaml
+sft_config: friday-llm/configs/sft_fase2_pilot.yaml
+eval_path: friday-llm/data/evaluation/friday_eval.jsonl
+baseline_path: friday-llm/reports/baseline_phi4.json
+eval_out_path: friday-llm/reports/phase2_eval_pilot.json
+manifest_adapter: friday-llm/checkpoints/sft-fase2-pilot/adapter
+report_md: friday-llm/reports/phase2_pilot_report.md
+report_json: friday-llm/reports/phase2_pilot_stats.json
+run_eval: false
+notes: >
+  Piloto local em subset Fase 1. run_eval=true requer modelo carregado no LM Studio.
+  Nunca altera LM_STUDIO_MODEL no repositório.

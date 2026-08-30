@@ -1,0 +1,15 @@
+run_id: friday-fase4-sft
+seed: 42
+sft_config: friday-llm/configs/sft_fase4.yaml
+approval_path: friday-llm/reports/sft_approval.json
+best_adapter_dir: friday-llm/checkpoints/sft-fase4-best/adapter
+selection_path: friday-llm/checkpoints/sft-fase4-best/selection.json
+eval_path: friday-llm/data/evaluation/friday_eval.jsonl
+baseline_path: friday-llm/reports/baseline_phi4.json
+eval_out_path: friday-llm/reports/phase4_eval_sft.json
+report_md: friday-llm/reports/phase4_sft_report.md
+report_json: friday-llm/reports/phase4_sft_stats.json
+run_eval: false
+notes: >
+  Fase 4 SFT: conversacao, personalidade, tools, seguranca.
+  Encadeado ao CPT Fase 3. Phi-4 em producao inalterado.

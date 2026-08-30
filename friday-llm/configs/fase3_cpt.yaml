@@ -1,0 +1,11 @@
+run_id: friday-fase3-cpt
+seed: 42
+cpt_config: friday-llm/configs/cpt_fase3.yaml
+approval_path: friday-llm/reports/corpus_approval.json
+best_adapter_dir: friday-llm/checkpoints/cpt-fase3-best/adapter
+selection_path: friday-llm/checkpoints/cpt-fase3-best/selection.json
+report_md: friday-llm/reports/phase3_cpt_report.md
+report_json: friday-llm/reports/phase3_cpt_stats.json
+notes: >
+  Fase 3 CPT em Qwen2.5-7B sobre corpus Fase 1 aprovado.
+  Phi-4 em produção permanece inalterado.

@@ -13,6 +13,7 @@ dependencies = [
     "httpx>=0.28.0,<1.0.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "numpy>=1.26.0,<3.0.0",
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -30,27 +31,49 @@ voice = [
     "mcp>=1.2.0",
     "chromadb>=0.5.0",
 ]
+rag = [
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0.0",
+]
 api = [
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn[standard]>=0.32.0,<1.0.0",
     "python-multipart>=0.0.9",
 ]
+llm = [
+    "torch>=2.2.0",
+    "transformers>=4.44.0,<4.49.0",
+    "accelerate>=0.33.0",
+    "peft>=0.13.0,<0.15.0",
+    "trl>=0.9.0",
+    "datasets>=2.20.0",
+    "sentencepiece>=0.2.0",
+    "protobuf>=4.25.0,<7.0.0",
+    "numpy>=1.26.0,<2.1.0",
+    "bitsandbytes>=0.43.0; platform_system != 'Windows'",
+    "PyYAML>=6.0",
+]
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
+    "PyYAML>=6.0",
 ]
 
 [project.scripts]
 friday-voice = "friday.pipeline.loop:main"
 friday-mcp = "friday.mcp_server.server:main"
+friday-llm-baseline = "friday_llm.evaluation.run_baseline:main"
+friday-llm-build = "friday_llm.pipeline.build_datasets.cli:main"
+friday-llm-export = "friday_llm.export.cli:main"
+friday-llm-incremental = "friday_llm.training.incremental.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["friday*"]
+where = [".", "friday-llm"]
+include = ["friday*", "friday_llm*"]
 
 [tool.setuptools.package-data]
 friday = ["monitors/*.html", "monitors/data/*", "monitors/*_snapshot.html"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tests", "friday-llm/tests"]

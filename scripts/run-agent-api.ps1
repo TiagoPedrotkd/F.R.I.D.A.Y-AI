@@ -13,7 +13,7 @@ if (Test-Path $venvPython) {
   $python = $venvPython
 } else {
   $python = "python"
-  Write-Warning "Sem .venv — a usar 'python' do PATH. Instala com: pip install -e `".[voice,api]`""
+  Write-Warning "Sem .venv - a usar python do PATH. Instala com: pip install -e '.[voice,api]'"
 }
 
 Write-Host "Starting agent-api on http://$($env:AGENT_API_HOST):$($env:AGENT_API_PORT)"

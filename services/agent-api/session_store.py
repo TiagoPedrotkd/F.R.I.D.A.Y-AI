@@ -61,6 +61,7 @@ def _friendly_tool_label(name: str) -> str:
         "get_world_finance_news": "A consultar noticias financeiras",
         "get_country_briefing": "A preparar briefing do pais",
         "search_web": "A pesquisar na Web",
+        "search_docs": "A pesquisar documentos internos",
         "fetch_url": "A verificar a pagina",
         "open_world_monitor": "A abrir o monitor mundial",
         "open_finance_world_monitor": "A abrir o monitor financeiro",
@@ -120,6 +121,7 @@ def extract_ui_payload(reply_text: str, metadata: dict | None) -> dict[str, Any]
                     "snippet": r.get("snippet", ""),
                     "source": r.get("source", ""),
                     "date": r.get("date"),
+                    "kind": r.get("kind"),
                 }
             )
     # Headlines inferred from news-like replies are left to frontend parsing of content
@@ -151,6 +153,7 @@ def extract_ui_payload(reply_text: str, metadata: dict | None) -> dict[str, Any]
         "not_realtime_prices": bool(meta.get("not_realtime_prices")),
         "country": meta.get("country"),
         "kind": meta.get("kind"),
+        "document_search": meta.get("kind") == "document",
         "opened": meta.get("opened"),
         "monitor_kind": monitor_kind,
         "offer_monitor": offer_monitor,
@@ -173,7 +176,12 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
         except Exception:
             pass
 
-    runner = ToolRunner(settings, registry, session=session.memory)
+    runner = ToolRunner(
+        settings,
+        registry,
+        session=session.memory,
+        state_emit=lambda state: session.emit("state", {"state": state}),
+    )
     await session.emit("activity", {"label": "A processar…", "status": "running"})
 
     # Detect pending confirmation flow
@@ -249,6 +257,7 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
             "finance": "get_world_finance_news",
             "briefing": "get_country_briefing",
             "monitor": "open_world_monitor",
+            "document": "search_docs",
         }.get(str(skill_hint))
         if skill_hint
         else None,

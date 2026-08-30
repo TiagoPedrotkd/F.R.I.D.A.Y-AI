@@ -72,6 +72,7 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
         OpenWorldMonitorSkill,
         WorldNewsSkill,
     )
+    from friday.skills.rag.search_docs import SearchDocsSkill
     from friday.skills.web.fetch_url import FetchUrlSkill
     from friday.skills.web.search_web import SearchWebSkill
 
@@ -88,6 +89,7 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     registry.register(
         SearchWebSkill(max_results_default=settings.web_search_max_results)
     )
+    registry.register(SearchDocsSkill(settings=settings))
     registry.register(FetchUrlSkill())
     registry.register(
         WorldNewsSkill(

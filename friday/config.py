@@ -39,9 +39,16 @@ class Settings(BaseSettings):
     whisper_device: str = Field(default="cuda", alias="WHISPER_DEVICE")
     whisper_vad_filter: bool = Field(default=False, alias="WHISPER_VAD_FILTER")
 
+    # Persona
+    friday_user_address: str = Field(default="Senhor", alias="FRIDAY_USER_ADDRESS")
+
     # TTS
-    piper_voice: str = Field(default="pt_PT-tugao-medium", alias="PIPER_VOICE")
+    piper_voice: str = Field(
+        default="models/piper/en_GB-cori-high.onnx",
+        alias="PIPER_VOICE",
+    )
     piper_executable: str = Field(default="", alias="PIPER_EXECUTABLE")
+    piper_length_scale: float = Field(default=1.0, alias="PIPER_LENGTH_SCALE")
 
     # Audio capture / playback
     sample_rate: int = Field(default=16000, alias="SAMPLE_RATE")
@@ -68,6 +75,23 @@ class Settings(BaseSettings):
     news_finance_feeds: str = Field(default="", alias="NEWS_FINANCE_FEEDS")
     web_search_max_results: int = Field(default=5, alias="WEB_SEARCH_MAX_RESULTS")
     auto_open_monitors: bool = Field(default=False, alias="AUTO_OPEN_MONITORS")
+
+    # Document RAG (separate from personal memory in data/chroma/)
+    rag_enabled: bool = Field(default=True, alias="RAG_ENABLED")
+    rag_backend: str = Field(default="embedding", alias="RAG_BACKEND")
+    rag_embedding_model: str = Field(
+        default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        alias="RAG_EMBEDDING_MODEL",
+    )
+    rag_corpus_path: Path = Field(
+        default=_REPO_ROOT / "friday-llm" / "data" / "rag" / "chunks.jsonl",
+        alias="RAG_CORPUS_PATH",
+    )
+    rag_index_dir: Path = Field(
+        default=_REPO_ROOT / "data" / "rag_chroma",
+        alias="RAG_INDEX_DIR",
+    )
+    rag_top_k: int = Field(default=3, alias="RAG_TOP_K")
 
     # User-facing error messages (Portuguese)
     error_network_pt: str = Field(

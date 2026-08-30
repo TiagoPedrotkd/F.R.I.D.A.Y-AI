@@ -1,6 +1,6 @@
 """Tests for deterministic intent routing."""
 
-from friday.llm.intent_router import match_skill
+from friday.llm.intent_router import match_skill, match_skill_with_args
 
 
 def test_match_time_portuguese():
@@ -14,6 +14,22 @@ def test_match_joke():
     assert match_skill("Conta uma piada") == "tell_joke"
     assert match_skill("diz-me uma piada") == "tell_joke"
     assert match_skill("Conta uma historia") is None
+
+
+def test_match_rag_docs():
+    assert match_skill("Na documentação do projeto, como ligo o LM Studio?") == "search_docs"
+    assert match_skill("Segundo o manual interno, o que é VLAN?") == "search_docs"
+
+
+def test_match_search_web():
+    assert match_skill("Pesquisa na web a versão mais recente do Phi-4") == "search_web"
+    assert match_skill("Procura na internet o preço do Bitcoin hoje") == "search_web"
+
+
+def test_match_remember():
+    name, args = match_skill_with_args("Lembra que prefiro português europeu")
+    assert name == "remember"
+    assert "português europeu" in args["text"]
 
 
 def test_no_match():

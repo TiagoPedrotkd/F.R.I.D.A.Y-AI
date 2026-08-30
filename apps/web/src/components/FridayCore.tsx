@@ -19,6 +19,8 @@ export function FridayCore() {
   const lang = useAppStore((s) => s.prefs.language)
   const reduced = useAppStore((s) => s.prefs.reducedMotion)
   const tint = STATE_TINT[state] ?? STATE_TINT.idle
+  const intense = ['listening', 'thinking', 'tool_calling', 'speaking', 'transcribing'].includes(state)
+  const coreOpacity = intense ? 0.72 : 0.55
 
   return (
     <div className="relative mx-auto w-[min(78vw,420px)]" aria-live="polite">
@@ -36,7 +38,7 @@ export function FridayCore() {
               <stop offset="100%" stopColor="transparent" stopOpacity="0" />
             </radialGradient>
             <filter id="softGlow">
-              <feGaussianBlur stdDeviation="3.5" result="b" />
+              <feGaussianBlur stdDeviation={intense ? 5 : 3.5} result="b" />
               <feMerge>
                 <feMergeNode in="b" />
                 <feMergeNode in="SourceGraphic" />
@@ -44,10 +46,9 @@ export function FridayCore() {
             </filter>
           </defs>
 
-          <circle cx="200" cy="200" r="190" fill="url(#reactorCore)" opacity="0.55" />
+          <circle cx="200" cy="200" r="190" fill="url(#reactorCore)" opacity={coreOpacity} />
 
-          {/* Outer tick compass */}
-          <g opacity="0.55">
+          <g opacity={intense ? 0.75 : 0.55}>
             {Array.from({ length: 72 }, (_, i) => {
               const a = (i / 72) * Math.PI * 2 - Math.PI / 2
               const long = i % 6 === 0
@@ -121,7 +122,6 @@ export function FridayCore() {
             />
           </g>
 
-          {/* Arc reactor triangle cluster */}
           <circle cx="200" cy="200" r="58" fill="rgba(0,8,20,0.75)" stroke={tint} strokeWidth="1.5" />
           <circle cx="200" cy="200" r="38" fill="url(#reactorCore)" opacity="0.9" filter="url(#softGlow)" />
           <path
@@ -138,7 +138,7 @@ export function FridayCore() {
         <div className="pointer-events-none absolute inset-x-0 bottom-[18%] text-center">
           <p
             className="font-display text-sm font-semibold tracking-[0.45em] text-cyan md:text-base"
-            style={{ textShadow: '0 0 16px rgba(92,239,255,0.8)' }}
+            style={{ textShadow: `0 0 16px ${tint}` }}
           >
             F.R.I.D.A.Y.
           </p>

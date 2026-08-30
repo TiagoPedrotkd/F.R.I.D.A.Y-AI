@@ -1,0 +1,25 @@
+{
+  "run_id": "friday-fase3-cpt",
+  "finished_at": "2026-08-29T22:03:20.824838+00:00",
+  "approval": {
+    "approved": true,
+    "dataset_id": "fineweb2-hq-por-pilot",
+    "file_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\pretraining\\cpt_fase1.jsonl",
+    "content_hash": "c2811f2c884116c6d585527b273cb0f3e925dfc5a69e3239086a846a7b972df9",
+    "catalog_content_hash": "c2811f2c884116c6d585527b273cb0f3e925dfc5a69e3239086a846a7b972df9",
+    "hash_matches_catalog": true,
+    "document_count": 10,
+    "token_count_est": 3671,
+    "approved_at": "2026-08-29T22:02:42.508145+00:00",
+    "catalog_entry": {
+      "license": "ODC-By (verify dataset card)",
+      "processing_status": "ready"
+    },
+    "notes": "Corpus approved for Fase 3 CPT."
+  },
+  "cpt": null,
+  "selection": null,
+  "production_model_unchanged": true,
+  "lm_studio_default": "microsoft/phi-4",
+  "notes": "Fase 3 CPT em Qwen2.5-7B sobre corpus Fase 1 aprovado. Phi-4 em produção permanece inalterado.\n"
+}

@@ -1,0 +1,16 @@
+{
+  "approved": true,
+  "dataset_id": "fineweb2-hq-por-pilot",
+  "file_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\pretraining\\cpt_fase1.jsonl",
+  "content_hash": "da1ef8b16229b58f7eaf26f29ce7109153934a7cdfdec47dc0ad85b9af1571ba",
+  "catalog_content_hash": "0b9ecb87d136851f5e252b4b55340798dbcc351b890fe8b6323ef5c049d7cbd5",
+  "hash_matches_catalog": true,
+  "document_count": 471,
+  "token_count_est": 357121,
+  "approved_at": "2026-08-30T18:29:00.774620+00:00",
+  "catalog_entry": {
+    "license": "ODC-By (verify dataset card)",
+    "processing_status": "ready"
+  },
+  "notes": "Corpus approved for Fase 3 CPT."
+}

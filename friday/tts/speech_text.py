@@ -13,15 +13,23 @@ _LIST_ITEM = re.compile(r"^\s*[-*•]\s+", re.M)
 _NUMBERED = re.compile(r"^\s*\d+[.)]\s+", re.M)
 
 
-def _domain_of(url: str) -> str:
+def _domain_of(url: str, *, lang: str = "pt") -> str:
     try:
         host = urlparse(url).netloc or ""
-        return host.removeprefix("www.") or "ligacao externa"
+        host = host.removeprefix("www.")
+        if host:
+            return host
     except Exception:
-        return "ligacao externa"
+        pass
+    return "external link" if lang.startswith("en") else "ligacao externa"
 
 
-def prepare_speech_text(text: str, max_chars: int = _MAX_TTS_CHARS) -> str:
+def prepare_speech_text(
+    text: str,
+    max_chars: int = _MAX_TTS_CHARS,
+    *,
+    lang: str = "pt",
+) -> str:
     """
     Normalize text for TTS without changing the written reply elsewhere.
 
@@ -32,6 +40,12 @@ def prepare_speech_text(text: str, max_chars: int = _MAX_TTS_CHARS) -> str:
     if not cleaned:
         return ""
 
+    lang_key = (lang or "pt").lower()
+    if lang_key.startswith("en"):
+        url_fmt = "link to {domain}"
+    else:
+        url_fmt = "ligacao a {domain}"
+
     cleaned = re.sub(r"```.*?```", " ", cleaned, flags=re.DOTALL)
     cleaned = _MD_HEADING.sub("", cleaned)
     cleaned = re.sub(r"\*\*([^*]+)\*\*", r"\1", cleaned)
@@ -39,7 +53,10 @@ def prepare_speech_text(text: str, max_chars: int = _MAX_TTS_CHARS) -> str:
     cleaned = re.sub(r"`([^`]+)`", r"\1", cleaned)
     cleaned = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", cleaned)
 
-    cleaned = _URL_RE.sub(lambda m: f"ligacao a {_domain_of(m.group(0))}", cleaned)
+    cleaned = _URL_RE.sub(
+        lambda m: url_fmt.format(domain=_domain_of(m.group(0), lang=lang_key)),
+        cleaned,
+    )
 
     # Convert list-like lines into spoken clauses
     lines = cleaned.splitlines()

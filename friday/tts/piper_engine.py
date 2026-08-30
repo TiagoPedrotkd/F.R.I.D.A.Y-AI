@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=1)
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
+__all__ = ["PiperEngine", "resolve_piper_voice", "clamp_length_scale", "prepare_speech_text"]
+
 
 def resolve_piper_voice(voice: str) -> Path:
     """Resolve PIPER_VOICE against repo root when relative (API cwd differs)."""
@@ -36,6 +38,15 @@ def resolve_piper_voice(voice: str) -> Path:
         if alt.is_file():
             return alt.resolve()
     return path
+
+
+def clamp_length_scale(value: float | None, default: float = 1.0) -> float:
+    """Keep Piper length_scale in a safe speakable range."""
+    try:
+        scale = float(default if value is None else value)
+    except (TypeError, ValueError):
+        scale = float(default)
+    return max(0.5, min(2.0, scale))
 
 
 class PiperEngine:
@@ -66,10 +77,24 @@ class PiperEngine:
             self._voice_instance = PiperVoice.load(str(model))
         return self._voice_instance
 
-    def _synthesize_blocking(self, text: str) -> Path:
-        speech_text = prepare_speech_text(text)
+    def _default_length_scale(self) -> float:
+        return clamp_length_scale(getattr(self._settings, "piper_length_scale", 1.0), 1.0)
+
+    def _synthesize_blocking(
+        self,
+        text: str,
+        *,
+        length_scale: float | None = None,
+        lang: str = "pt",
+    ) -> Path:
+        speech_text = prepare_speech_text(text, lang=lang)
         if not speech_text:
             raise ValueError("Empty TTS text after normalization")
+
+        scale = clamp_length_scale(
+            length_scale if length_scale is not None else self._default_length_scale(),
+            self._default_length_scale(),
+        )
 
         tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
         tmp.close()
@@ -82,6 +107,8 @@ class PiperEngine:
                 self._voice,
                 "--output_file",
                 str(out_path),
+                "--length_scale",
+                str(scale),
             ]
             proc = subprocess.run(
                 cmd,
@@ -96,27 +123,59 @@ class PiperEngine:
 
         voice = self._get_voice()
         with wave.open(str(out_path), "wb") as wf:
-            voice.synthesize_wav(speech_text, wf)
+            try:
+                from piper.config import SynthesisConfig
+
+                voice.synthesize_wav(
+                    speech_text,
+                    wf,
+                    syn_config=SynthesisConfig(length_scale=scale),
+                )
+            except TypeError:
+                # Older piper without syn_config
+                voice.synthesize_wav(speech_text, wf)
+            except Exception:
+                logger.warning("Piper SynthesisConfig failed; synthesizing without length_scale")
+                voice.synthesize_wav(speech_text, wf)
         return out_path
 
-    def synthesize_to_path(self, text: str) -> Path:
+    def synthesize_to_path(
+        self,
+        text: str,
+        *,
+        length_scale: float | None = None,
+        lang: str = "pt",
+    ) -> Path:
         """Synthesize speech to a temp WAV file (caller must delete)."""
-        return self._synthesize_blocking(text)
+        return self._synthesize_blocking(text, length_scale=length_scale, lang=lang)
 
-    def synthesize_bytes(self, text: str) -> bytes:
+    def synthesize_bytes(
+        self,
+        text: str,
+        *,
+        length_scale: float | None = None,
+        lang: str = "pt",
+    ) -> bytes:
         """Return WAV bytes without playing audio."""
-        path = self._synthesize_blocking(text)
+        path = self._synthesize_blocking(text, length_scale=length_scale, lang=lang)
         try:
             return path.read_bytes()
         finally:
             path.unlink(missing_ok=True)
 
-    async def speak(self, text: str) -> None:
+    async def speak(
+        self,
+        text: str,
+        *,
+        length_scale: float | None = None,
+        lang: str = "pt",
+    ) -> None:
         if not text.strip():
             return
         loop = asyncio.get_running_loop()
         wav_path = await loop.run_in_executor(
-            _executor, self._synthesize_blocking, text
+            _executor,
+            lambda: self._synthesize_blocking(text, length_scale=length_scale, lang=lang),
         )
         try:
             await play_wav(wav_path, output_device=self._output_device)

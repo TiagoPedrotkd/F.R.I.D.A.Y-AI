@@ -67,6 +67,19 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               onChange={(e) => setPrefs({ volume: Number(e.target.value) })}
             />
           </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-[var(--text-muted)]">
+              Velocidade TTS ({prefs.rate.toFixed(2)}×)
+            </span>
+            <input
+              type="range"
+              min={0.75}
+              max={1.35}
+              step={0.05}
+              value={prefs.rate}
+              onChange={(e) => setPrefs({ rate: Number(e.target.value) })}
+            />
+          </label>
         </div>
       </div>
     </div>

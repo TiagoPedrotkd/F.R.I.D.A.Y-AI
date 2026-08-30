@@ -1,0 +1,20 @@
+{
+  "total": 61,
+  "train": 51,
+  "holdout": 10,
+  "eval_leak_dropped": 0,
+  "categories": {
+    "tool_calling": 39,
+    "honesty": 3,
+    "safety": 6,
+    "rag": 3,
+    "voice_style": 4,
+    "clarify": 1,
+    "conversation": 2,
+    "personality": 3
+  },
+  "invalid_tools": [],
+  "content_hash": "cb0f8096cf2d4b3724d9429842629c7172038fe2b6c13d1da12b11618a65ee9e",
+  "train_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_train.jsonl",
+  "holdout_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_holdout.jsonl"
+}

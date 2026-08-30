@@ -1,0 +1,22 @@
+run_id: sft-smoke-v0
+seed: 42
+model_config: friday-llm/configs/base_model.yaml
+use_smoke_model: true
+# Prefer CPT adapter if present; else base smoke model.
+adapter_path: friday-llm/checkpoints/cpt-smoke
+train_file: friday-llm/data/sft/seed_sft.jsonl
+eval_file: friday-llm/data/sft/seed_sft_holdout.jsonl
+output_dir: friday-llm/checkpoints/sft-smoke
+max_steps: 15
+seq_length: 1024
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+warmup_ratio: 0.03
+logging_steps: 1
+save_steps: 15
+fp16: false
+bf16: false
+optim: paged_adamw_8bit
+gradient_checkpointing: true
+report_to: none

@@ -1,0 +1,35 @@
+run_id: sft-incremental
+seed: 42
+phase: incremental-sft
+model_config: friday-llm/configs/base_model.yaml
+use_smoke_model: false
+adapter_path: friday-llm/checkpoints/cpt-incremental-best
+train_file: friday-llm/data/sft/fase4_sft_train.jsonl
+eval_file: friday-llm/data/sft/fase4_sft_holdout.jsonl
+output_dir: friday-llm/checkpoints/sft-incremental
+report_path: friday-llm/reports/incremental/sft_run.json
+approval_path: friday-llm/reports/sft_approval.json
+require_approval: true
+checkpoint_metrics_path: friday-llm/reports/incremental/sft_checkpoint_metrics.jsonl
+max_steps: 100
+seq_length: 1024
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 1.0e-4
+warmup_steps: 5
+logging_steps: 10
+save_steps: 20
+eval_steps: 20
+save_total_limit: 3
+resume_from_checkpoint: true
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+greater_is_better: false
+fp16: false
+bf16: false
+optim: paged_adamw_8bit
+gradient_checkpointing: true
+report_to: none
+notes: >
+  SFT após CPT incremental (cpt-incremental-best).
+  Phi-4 em produção inalterado até gate manual.

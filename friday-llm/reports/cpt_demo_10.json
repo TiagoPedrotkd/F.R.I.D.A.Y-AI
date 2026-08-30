@@ -1,0 +1,32 @@
+{
+  "run_id": "cpt-demo-10",
+  "phase": "cpt",
+  "finished_at": "2026-08-30T20:41:07.930736+00:00",
+  "base_model": "Qwen/Qwen2.5-0.5B",
+  "output_dir": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10",
+  "data_file": "friday-llm/data/pretraining/cpt_demo_10.jsonl",
+  "n_source_docs": 10,
+  "train_loss": 2.9206205129623415,
+  "eval_loss": 3.286515712738037,
+  "n_train_docs": 9,
+  "n_eval_docs": 1,
+  "max_steps": 20,
+  "quant_mode": "nf4",
+  "resumed_from": null,
+  "checkpoints": [
+    {
+      "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10\\checkpoint-10",
+      "step": 10,
+      "eval_loss": 3.2894177436828613,
+      "train_loss": 3.0584
+    },
+    {
+      "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10\\checkpoint-20",
+      "step": 20,
+      "eval_loss": 3.286515712738037,
+      "train_loss": 2.7201
+    }
+  ],
+  "skipped_train": false,
+  "notes": "CPT run \u2014 subset only; not general knowledge training."
+}

@@ -1,0 +1,57 @@
+run_id: friday-fase1-data
+seed: 42
+max_documents: 500
+max_cpt_tokens: 2_000_000
+language_mix:
+  por: 0.70
+  eng: 0.30
+paths:
+  registry: friday-llm/data/registry/datasets.jsonl
+  raw: friday-llm/data/raw
+  extracted: friday-llm/data/extracted
+  cleaned: friday-llm/data/cleaned
+  deduplicated: friday-llm/data/deduplicated
+  pretraining: friday-llm/data/pretraining
+  sft: friday-llm/data/sft
+  evaluation: friday-llm/data/evaluation/friday_eval.jsonl
+  rag: friday-llm/data/rag
+fineweb:
+  dataset: HuggingFaceFW/fineweb-2
+  stream: true
+  configs:
+    - name: por_Latn
+      language: por
+      max_samples: 350
+    - name: eng_Latn
+      language: eng
+      max_samples: 150
+repo_docs:
+  globs:
+    - docs/**/*.md
+    - friday-llm/README.md
+    - friday-llm/reports/phase0_audit.md
+  license: Apache-2.0
+  language: pt
+cleaning:
+  min_chars: 200
+  max_chars: 50000
+  drop_pii: true
+  exact_dedupe: true
+  minhash_threshold: 0.85
+  minhash_perms: 128
+dedupe:
+  method: minhash
+sft:
+  seed_file: friday-llm/data/sft/seed_sft.jsonl
+  holdout_ratio: 0.15
+  expand_from_registry: true
+rag:
+  chunk_chars: 2000
+  chunk_overlap: 200
+excluded_paths:
+  - data/chroma
+  - data/news_cache
+  - apps/web/src/demo
+  - tests
+  - friday-llm/data/evaluation
+  - friday-llm/tests

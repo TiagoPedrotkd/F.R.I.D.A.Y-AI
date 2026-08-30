@@ -215,7 +215,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         try {
           const abort = new AbortController()
           set({ ttsAbort: abort })
-          const bytes = await api.tts(replyText, sessionId)
+          const bytes = await api.tts(replyText, sessionId, {
+            rate: prefs.rate,
+            language: prefs.language,
+          })
           await playWavBytes(bytes, { volume: prefs.volume, signal: abort.signal })
         } catch {
           /* TTS optional */

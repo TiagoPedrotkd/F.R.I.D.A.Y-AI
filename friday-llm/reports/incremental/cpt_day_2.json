@@ -1,0 +1,32 @@
+{
+  "run_id": "cpt-incremental-day-2",
+  "phase": "incremental",
+  "finished_at": "2026-08-30T21:37:25.712081+00:00",
+  "base_model": "Qwen/Qwen2.5-7B",
+  "output_dir": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-incremental",
+  "data_file": "friday-llm/data/pretraining/incremental/corpus_cumulative.jsonl",
+  "n_source_docs": 20,
+  "train_loss": 1.0714581727981567,
+  "eval_loss": 1.5267490148544312,
+  "n_train_docs": 18,
+  "n_eval_docs": 2,
+  "max_steps": 80,
+  "quant_mode": "nf4",
+  "resumed_from": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-incremental\\checkpoint-40",
+  "checkpoints": [
+    {
+      "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-incremental\\checkpoint-40",
+      "step": 40,
+      "eval_loss": 2.41538667678833,
+      "train_loss": 1.972
+    },
+    {
+      "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-incremental\\checkpoint-80",
+      "step": 80,
+      "eval_loss": 1.5267490148544312,
+      "train_loss": 2.1529
+    }
+  ],
+  "skipped_train": false,
+  "notes": "CPT run \u2014 subset only; not general knowledge training."
+}

@@ -1,0 +1,121 @@
+{
+  "run_id": "friday-fase4-sft",
+  "finished_at": "2026-08-29T22:06:25.552340+00:00",
+  "build": {
+    "total": 61,
+    "train": 51,
+    "holdout": 10,
+    "eval_leak_dropped": 0,
+    "categories": {
+      "tool_calling": 39,
+      "honesty": 3,
+      "safety": 6,
+      "rag": 3,
+      "voice_style": 4,
+      "clarify": 1,
+      "conversation": 2,
+      "personality": 3
+    },
+    "invalid_tools": [],
+    "content_hash": "cb0f8096cf2d4b3724d9429842629c7172038fe2b6c13d1da12b11618a65ee9e",
+    "train_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_train.jsonl",
+    "holdout_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_holdout.jsonl"
+  },
+  "approval": {
+    "approved": true,
+    "train_file": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_train.jsonl",
+    "holdout_file": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_holdout.jsonl",
+    "content_hash": "f0c2af183417e6374cf4aafdada7b452924705ad7497a4aa866d54d5b573c148",
+    "train_count": 51,
+    "holdout_count": 10,
+    "categories": {
+      "conversation": 2,
+      "tool_calling": 39,
+      "honesty": 3,
+      "rag": 3,
+      "personality": 3,
+      "safety": 6,
+      "voice_style": 4,
+      "clarify": 1
+    },
+    "missing_categories": [],
+    "invalid_tools": [],
+    "eval_leaks": [],
+    "approved_at": "2026-08-29T22:06:25.249471+00:00",
+    "notes": "SFT dataset approved for Fase 4."
+  },
+  "sft": null,
+  "selection": null,
+  "eval_comparison": {
+    "baseline": {
+      "path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\reports\\baseline_phi4.json",
+      "model": "microsoft/phi-4",
+      "pass_rate": 0.467,
+      "mean_latency_s": 11.372,
+      "tool_call_rate": 0.0
+    },
+    "pilot": null,
+    "delta": null,
+    "notes": "Pilot eval not run yet. Load model in LM Studio and run with run_eval=true.",
+    "baseline_by_category": {
+      "clarify": {
+        "n": 1,
+        "passed": 1,
+        "pass_rate": 1.0,
+        "tool_call_rate": null
+      },
+      "coding": {
+        "n": 1,
+        "passed": 1,
+        "pass_rate": 1.0,
+        "tool_call_rate": null
+      },
+      "english": {
+        "n": 1,
+        "passed": 1,
+        "pass_rate": 1.0,
+        "tool_call_rate": null
+      },
+      "honesty": {
+        "n": 1,
+        "passed": 0,
+        "pass_rate": 0.0,
+        "tool_call_rate": null
+      },
+      "rag": {
+        "n": 1,
+        "passed": 1,
+        "pass_rate": 1.0,
+        "tool_call_rate": null
+      },
+      "safety": {
+        "n": 2,
+        "passed": 2,
+        "pass_rate": 1.0,
+        "tool_call_rate": null
+      },
+      "tool_calling": {
+        "n": 5,
+        "passed": 0,
+        "pass_rate": 0.0,
+        "tool_call_rate": null
+      },
+      "unknown": {
+        "n": 2,
+        "passed": 0,
+        "pass_rate": 0.0,
+        "tool_call_rate": null
+      },
+      "voice_style": {
+        "n": 1,
+        "passed": 1,
+        "pass_rate": 1.0,
+        "tool_call_rate": null
+      }
+    },
+    "candidate_by_category": null
+  },
+  "production_model_unchanged": true,
+  "lm_studio_default": "microsoft/phi-4",
+  "notes": "Fase 4 SFT: conversacao, personalidade, tools, seguranca. Encadeado ao CPT Fase 3. Phi-4 em producao inalterado.\n"
+}

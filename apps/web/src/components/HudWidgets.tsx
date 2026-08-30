@@ -70,34 +70,34 @@ export function HudRingMeter({
   value: number
   ok?: boolean
 }) {
-  const r = 28
+  const r = 22
   const c = 2 * Math.PI * r
   const color = ok ? '#3de3ff' : '#ff4d6a'
   const offset = c * (1 - Math.min(100, Math.max(0, value)) / 100)
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative h-[72px] w-[72px]">
-        <svg viewBox="0 0 72 72" className="h-full w-full">
-          <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(61,227,255,0.15)" strokeWidth="5" />
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+      <div className="relative h-[56px] w-[56px] shrink-0">
+        <svg viewBox="0 0 56 56" className="h-full w-full overflow-visible">
+          <circle cx="28" cy="28" r={r} fill="none" stroke="rgba(61,227,255,0.15)" strokeWidth="4" />
           <circle
-            cx="36"
-            cy="36"
+            cx="28"
+            cy="28"
             r={r}
             fill="none"
             stroke={color}
-            strokeWidth="5"
+            strokeWidth="4"
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={offset}
-            transform="rotate(-90 36 36)"
-            style={{ filter: `drop-shadow(0 0 6px ${color})` }}
+            transform="rotate(-90 28 28)"
+            style={{ filter: `drop-shadow(0 0 4px ${color})` }}
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center font-display text-xs tabular-nums text-cyan">
+        <span className="absolute inset-0 flex items-center justify-center font-display text-[11px] tabular-nums text-cyan">
           {value}%
         </span>
       </div>
-      <span className="font-display text-[9px] tracking-[0.2em] text-[var(--text-muted)]">{label}</span>
+      <span className="font-display text-[8px] tracking-[0.16em] text-[var(--text-muted)]">{label}</span>
     </div>
   )
 }

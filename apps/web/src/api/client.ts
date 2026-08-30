@@ -126,11 +126,20 @@ export async function stt(blob: Blob, sessionId?: string, language = 'pt'): Prom
   )
 }
 
-export async function tts(text: string, sessionId?: string): Promise<ArrayBuffer> {
+export async function tts(
+  text: string,
+  sessionId?: string,
+  opts?: { rate?: number; language?: 'pt' | 'en' },
+): Promise<ArrayBuffer> {
   const res = await fetch(apiUrl('/v1/tts'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, session_id: sessionId }),
+    body: JSON.stringify({
+      text,
+      session_id: sessionId,
+      rate: opts?.rate,
+      language: opts?.language,
+    }),
     signal: withTimeout(60000),
   })
   if (!res.ok) throw new Error(`TTS HTTP ${res.status}`)

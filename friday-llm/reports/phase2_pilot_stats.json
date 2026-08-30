@@ -1,0 +1,26 @@
+{
+  "run_id": "friday-fase2-pilot",
+  "finished_at": "2026-08-29T22:34:23.594681+00:00",
+  "cpt": null,
+  "sft": null,
+  "eval_comparison": {
+    "baseline": {
+      "path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\reports\\baseline_phi4.json",
+      "model": "microsoft/phi-4",
+      "pass_rate": 0.467,
+      "mean_latency_s": 11.372,
+      "tool_call_rate": 0.0
+    },
+    "pilot": null,
+    "delta": null,
+    "notes": "Pilot eval not run yet. Load model in LM Studio and run with run_eval=true."
+  },
+  "manifest": {
+    "adapter_dir": null,
+    "gguf_status": null,
+    "file_count": 0
+  },
+  "production_model_unchanged": true,
+  "lm_studio_default": "microsoft/phi-4",
+  "notes": "Piloto local em subset Fase 1. run_eval=true requer modelo carregado no LM Studio. Nunca altera LM_STUDIO_MODEL no repositório.\n"
+}

@@ -1,0 +1,5 @@
+{"step": 50, "eval_loss": 2.1630308628082275, "train_loss": 2.1828, "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-fase3\\checkpoint-50", "timestamp": "2026-08-30T19:06:49.420613+00:00"}
+{"step": 10, "eval_loss": 3.2894177436828613, "train_loss": 3.0584, "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10\\checkpoint-10", "timestamp": "2026-08-30T20:40:47.730591+00:00"}
+{"step": 20, "eval_loss": 3.286515712738037, "train_loss": 2.7201, "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10\\checkpoint-20", "timestamp": "2026-08-30T20:41:05.718913+00:00"}
+{"step": 10, "eval_loss": 3.2894177436828613, "train_loss": 3.0584, "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10\\checkpoint-10", "timestamp": "2026-08-30T20:41:07.915218+00:00"}
+{"step": 20, "eval_loss": 3.286515712738037, "train_loss": 2.7201, "checkpoint_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\checkpoints\\cpt-demo-10\\checkpoint-20", "timestamp": "2026-08-30T20:41:07.928212+00:00"}

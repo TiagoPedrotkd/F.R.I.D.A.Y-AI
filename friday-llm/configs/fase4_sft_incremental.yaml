@@ -1,0 +1,15 @@
+run_id: friday-sft-after-incremental
+seed: 42
+sft_config: friday-llm/configs/sft_incremental.yaml
+approval_path: friday-llm/reports/sft_approval.json
+best_adapter_dir: friday-llm/checkpoints/sft-incremental-best/adapter
+selection_path: friday-llm/checkpoints/sft-incremental-best/selection.json
+eval_path: friday-llm/data/evaluation/friday_eval.jsonl
+baseline_path: friday-llm/reports/baseline_phi4.json
+eval_out_path: friday-llm/reports/incremental/phase4_eval_sft.json
+report_md: friday-llm/reports/incremental/sft_report.md
+report_json: friday-llm/reports/incremental/sft_stats.json
+run_eval: false
+notes: >
+  SFT após CPT incremental suficiente. Select best em cpt-incremental-best
+  antes de correr. Phi-4 em produção inalterado.

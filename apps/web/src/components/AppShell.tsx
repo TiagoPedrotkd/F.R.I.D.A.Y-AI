@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { stateLabel } from '../state/machine'
 import { useAppStore } from '../state/store'
 import { ActivityTimeline } from './ActivityTimeline'
 import { ConfirmationDialog } from './ConfirmationDialog'
@@ -64,23 +65,42 @@ export function AppShell() {
   const backendOk = useAppStore((s) => s.backendOk)
   const llmOk = useAppStore((s) => s.llmOk)
   const state = useAppStore((s) => s.state)
+  const lang = prefs.language
   const locale = prefs.language === 'en' ? 'en-GB' : 'pt-PT'
   const coreLoad =
     state === 'error' ? 18 : state === 'connecting' ? 40 : state === 'idle' ? 64 : 84
+  const busy = ['thinking', 'tool_calling', 'transcribing', 'listening', 'speaking'].includes(state)
+  const alert = state === 'awaiting_confirmation'
+  const err = state === 'error'
 
   useEffect(() => {
     void bootstrap()
   }, [bootstrap])
 
   return (
-    <div className="hud-viewport">
+    <div
+      className={`hud-viewport ${prefs.reducedMotion ? 'reduce-motion' : ''} ${
+        prefs.highContrast ? 'high-contrast' : ''
+      }`}
+    >
       <div className="hud-stage">
-        {/* Screen corner brackets */}
         <div className="pointer-events-none absolute inset-4 z-30 max-md:inset-2" aria-hidden>
-          <span className="absolute left-0 top-0 h-6 w-6 border-l-2 border-t-2 border-cyan/70" style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }} />
-          <span className="absolute right-0 top-0 h-6 w-6 border-r-2 border-t-2 border-cyan/70" style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }} />
-          <span className="absolute bottom-0 left-0 h-6 w-6 border-b-2 border-l-2 border-cyan/70" style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }} />
-          <span className="absolute bottom-0 right-0 h-6 w-6 border-b-2 border-r-2 border-cyan/70" style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }} />
+          <span
+            className="absolute left-0 top-0 h-6 w-6 border-l-2 border-t-2 border-cyan/70"
+            style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }}
+          />
+          <span
+            className="absolute right-0 top-0 h-6 w-6 border-r-2 border-t-2 border-cyan/70"
+            style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }}
+          />
+          <span
+            className="absolute bottom-0 left-0 h-6 w-6 border-b-2 border-l-2 border-cyan/70"
+            style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }}
+          />
+          <span
+            className="absolute bottom-0 right-0 h-6 w-6 border-b-2 border-r-2 border-cyan/70"
+            style={{ filter: 'drop-shadow(0 0 6px #5cefff)' }}
+          />
         </div>
 
         {demo && <DemoBanner />}
@@ -95,9 +115,19 @@ export function AppShell() {
               F.R.I.D.A.Y.
             </h1>
           </div>
+          <div
+            className="hud-state-chip hidden sm:inline-flex"
+            data-busy={busy || undefined}
+            data-alert={alert || undefined}
+            data-error={err || undefined}
+            role="status"
+          >
+            <span className={`hud-state-dot ${busy && !prefs.reducedMotion ? 'hud-pulse' : ''}`} aria-hidden />
+            {stateLabel(state, lang)}
+          </div>
           <ConnectionStatus />
           <button type="button" className="hud-btn md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            Data
+            {sidebarOpen ? 'Fechar' : 'Data'}
           </button>
           <button type="button" className="hud-btn" onClick={() => setSettingsOpen(true)}>
             Config
@@ -109,13 +139,12 @@ export function AppShell() {
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
           <StageWires />
 
-          {/* Floating corner modules — above center so they stay clickable */}
           <div className="pointer-events-none absolute inset-0 z-30 hidden md:block">
-            <div className="pointer-events-auto absolute left-5 top-2 w-[170px] lg:left-8 lg:w-[190px]">
+            <div className="pointer-events-auto absolute left-5 top-2 w-[210px] lg:left-8 lg:w-[228px]">
               <div className="holo holo-frame p-2">
                 <HudDateGauge locale={locale} />
               </div>
-              <div className="holo holo-frame mt-3 flex justify-around p-2">
+              <div className="holo holo-frame mt-3 flex items-start justify-between gap-1 overflow-hidden px-2.5 py-2.5">
                 <HudRingMeter label="API" value={backendOk || demo ? 92 : 14} ok={backendOk || demo} />
                 <HudRingMeter label="LM" value={llmOk || demo ? 88 : 10} ok={llmOk || demo} />
                 <HudRingMeter label="CORE" value={coreLoad} ok={state !== 'error'} />
@@ -131,11 +160,7 @@ export function AppShell() {
                 )}
               </div>
               {offerMonitor && (
-                <button
-                  type="button"
-                  onClick={openMonitor}
-                  className="hud-btn hud-btn-primary w-full"
-                >
+                <button type="button" onClick={openMonitor} className="hud-btn hud-btn-primary w-full">
                   Abrir monitor
                 </button>
               )}
@@ -151,28 +176,15 @@ export function AppShell() {
             </div>
           </div>
 
-          {/* Center reactor + orbit actions */}
           <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-3 pb-2 pt-1 pointer-events-none">
             <div className="pointer-events-auto">
               <FridayCore />
             </div>
             <div className="pointer-events-auto -mt-2 mb-3 w-full max-w-md">
               <QuickActions orbit />
-              {offerMonitor && (
-                <div className="mt-3 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={openMonitor}
-                    className="hud-btn hud-btn-primary px-6"
-                  >
-                    Abrir monitor
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Bottom comms console */}
           <div className="relative z-20 mx-auto w-full max-w-3xl space-y-2 px-3 pb-4 md:px-6">
             {offerMonitor && (
               <button
@@ -194,12 +206,20 @@ export function AppShell() {
           </div>
         </div>
 
-        {/* Mobile data drawer */}
         {sidebarOpen && (
-          <div className="absolute inset-x-3 bottom-24 z-30 space-y-2 md:hidden">
+          <div className="absolute inset-x-3 bottom-28 z-30 max-h-[42vh] space-y-2 overflow-y-auto md:hidden">
             <div className="holo holo-frame p-3">
+              <p className="holo-label mb-2">Contexto</p>
               <CountryContextChip country={country} />
             </div>
+            {sources.length > 0 && (
+              <div className="holo holo-frame space-y-2 p-3">
+                <p className="holo-label">Fontes</p>
+                {sources.map((s, i) => (
+                  <SourceCard key={`m-${s.url}-${i}`} source={s} demo={demo} />
+                ))}
+              </div>
+            )}
             <ActivityTimeline />
           </div>
         )}

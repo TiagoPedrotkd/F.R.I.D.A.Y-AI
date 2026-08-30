@@ -1,0 +1,23 @@
+{
+  "approved": true,
+  "train_file": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_train.jsonl",
+  "holdout_file": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\sft\\fase4_sft_holdout.jsonl",
+  "content_hash": "f0c2af183417e6374cf4aafdada7b452924705ad7497a4aa866d54d5b573c148",
+  "train_count": 51,
+  "holdout_count": 10,
+  "categories": {
+    "conversation": 2,
+    "tool_calling": 39,
+    "honesty": 3,
+    "rag": 3,
+    "personality": 3,
+    "safety": 6,
+    "voice_style": 4,
+    "clarify": 1
+  },
+  "missing_categories": [],
+  "invalid_tools": [],
+  "eval_leaks": [],
+  "approved_at": "2026-08-29T22:06:25.249471+00:00",
+  "notes": "SFT dataset approved for Fase 4."
+}

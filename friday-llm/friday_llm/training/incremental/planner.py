@@ -97,6 +97,35 @@ class IncrementalState:
         self.output_dir_rel = output_dir_rel
 
 
+DOMAIN_KEYWORDS = (
+    "friday",
+    "assistant",
+    "llm",
+    "local",
+    "rag",
+    "python",
+    "windows",
+    "docker",
+    "whisper",
+    "piper",
+    "chroma",
+    "qwen",
+    "lora",
+    "fine-tun",
+    "mcp",
+    "agent",
+    "privacy",
+    "self-host",
+    "vlan",
+    "home assistant",
+)
+
+
+def _domain_score(text: str) -> int:
+    lowered = text.casefold()
+    return sum(1 for kw in DOMAIN_KEYWORDS if kw in lowered)
+
+
 def prepare_day(
     day: int,
     add: int,
@@ -106,6 +135,8 @@ def prepare_day(
     min_steps: int = 20,
     use_smoke_model: bool = False,
     write_script: bool = True,
+    prefer_domain: bool = False,
+    domain_source: str = "friday-llm/data/pretraining/incremental/domain_docs.jsonl",
 ) -> dict[str, Any]:
     """
     Add `add` unused docs to the cumulative corpus and emit day config + progress.
@@ -124,6 +155,31 @@ def prepare_day(
 
     used = _load_used_hashes(st.used_hashes_path)
     available = [r for r in source_rows if _row_hash(r) not in used]
+
+    domain_rows: list[dict[str, Any]] = []
+    domain_path = resolve_path(domain_source)
+    if prefer_domain and domain_path.is_file():
+        domain_rows = [
+            r for r in read_jsonl(domain_path) if _row_hash(r) not in used
+        ]
+
+    if prefer_domain:
+        # Domain corpus first, then FineWeb scored by domain keywords
+        scored_pool = sorted(
+            available,
+            key=lambda r: _domain_score(str(r.get("text") or "")),
+            reverse=True,
+        )
+        merged: list[dict[str, Any]] = []
+        seen_h: set[str] = set()
+        for r in domain_rows + scored_pool:
+            h = _row_hash(r)
+            if h in seen_h:
+                continue
+            seen_h.add(h)
+            merged.append(r)
+        available = merged
+
     if len(available) < add:
         raise ValueError(
             f"Only {len(available)} unused docs left in pool "
@@ -203,7 +259,9 @@ def prepare_day(
         "report_to": "none",
         "notes": (
             f"Incremental day {day}: +{add} docs "
-            f"(cumulative={len(cumulative_rows)}). Steps {base}->{max_steps}."
+            f"(cumulative={len(cumulative_rows)}"
+            f"{', prefer_domain' if prefer_domain else ''}"
+            f"). Steps {base}->{max_steps}."
         ),
     }
 

@@ -22,8 +22,8 @@ def test_match_rag_docs():
 
 
 def test_match_search_web():
-    assert match_skill("Pesquisa na web a versão mais recente do Phi-4") == "search_web"
-    assert match_skill("Procura na internet o preço do Bitcoin hoje") == "search_web"
+    assert match_skill("Pesquisa na web a versão mais recente do Phi-4") == "research_web"
+    assert match_skill("Procura na internet o preço do Bitcoin hoje") == "research_web"
 
 
 def test_match_remember():

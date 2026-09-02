@@ -1,5 +1,7 @@
 export type Prefs = {
   language: 'pt' | 'en'
+  theme: 'dark' | 'light'
+  userAddress: string
   ttsEnabled: boolean
   volume: number
   rate: number
@@ -13,6 +15,8 @@ export type Prefs = {
 
 export const defaultPrefs: Prefs = {
   language: 'pt',
+  theme: 'dark',
+  userAddress: 'Senhor',
   ttsEnabled: true,
   volume: 0.9,
   rate: 1,

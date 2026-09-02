@@ -30,9 +30,29 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
         <div className="space-y-4 text-sm">
           <label className="flex items-center justify-between gap-3">
+            <span className="text-[var(--text-muted)]">Tema</span>
+            <select
+              className="border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-cyan"
+              value={prefs.theme}
+              onChange={(e) => setPrefs({ theme: e.target.value as 'dark' | 'light' })}
+            >
+              <option value="dark">Escuro (HUD)</option>
+              <option value="light">Claro</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-[var(--text-muted)]">Tratamento formal</span>
+            <input
+              className="border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-cyan"
+              value={prefs.userAddress}
+              onChange={(e) => setPrefs({ userAddress: e.target.value })}
+              placeholder="Senhor"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3">
             <span className="text-[var(--text-muted)]">Idioma UI</span>
             <select
-              className="border border-cyan/30 bg-night-950 px-2 py-1 text-cyan"
+              className="border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-cyan"
               value={prefs.language}
               onChange={(e) => setPrefs({ language: e.target.value as 'pt' | 'en' })}
             >

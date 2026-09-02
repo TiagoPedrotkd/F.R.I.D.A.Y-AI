@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useAppStore } from '../state/store'
 
 export function VoiceControls() {
@@ -6,8 +7,10 @@ export function VoiceControls() {
   const sendText = useAppStore((s) => s.sendText)
   const toggleMic = useAppStore((s) => s.toggleMic)
   const stopSpeaking = useAppStore((s) => s.stopSpeaking)
+  const uploadFile = useAppStore((s) => s.uploadFile)
   const state = useAppStore((s) => s.state)
   const mic = useAppStore((s) => s.mic)
+  const fileRef = useRef<HTMLInputElement>(null)
   const busy = ['thinking', 'tool_calling', 'transcribing', 'speaking'].includes(state)
   const listening = state === 'listening' || !!mic
 
@@ -40,20 +43,48 @@ export function VoiceControls() {
               e.preventDefault()
               void sendText()
             }
+            if (e.key === 'Escape' && state === 'speaking') {
+              e.preventDefault()
+              stopSpeaking()
+            }
           }}
-          placeholder={listening ? 'A ouvir…' : 'Fala ou escreve um pedido…'}
-          className="min-h-[52px] w-full resize-none border border-cyan/30 bg-[#04101c]/80 px-3 py-2.5 font-body text-sm text-[var(--text-primary)] placeholder:text-cyan/35 focus:border-cyan/70 focus:outline-none"
+          placeholder={listening ? 'A ouvir…' : 'Fala, escreve ou anexa um ficheiro…'}
+          className="min-h-[52px] w-full resize-none border border-cyan/30 bg-[var(--color-night-950)]/80 px-3 py-2.5 font-body text-sm text-[var(--text-primary)] placeholder:text-cyan/35 focus:border-cyan/70 focus:outline-none"
           style={{
             boxShadow: listening
               ? 'inset 0 0 24px rgba(255,77,106,0.12)'
               : 'inset 0 0 20px rgba(92,239,255,0.06)',
             borderColor: listening ? 'rgba(255,77,106,0.45)' : undefined,
-            colorScheme: 'dark',
           }}
           disabled={state === 'listening'}
+          aria-describedby="friday-input-hint"
+          autoComplete="off"
         />
+        <p id="friday-input-hint" className="sr-only">
+          Enter envia. Shift+Enter nova linha. Escape interrompe a fala.
+        </p>
       </div>
       <div className="flex gap-2 sm:pb-0.5">
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          accept=".txt,.md,.csv,.json,.py,.pdf,image/*"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) void uploadFile(f)
+            e.target.value = ''
+          }}
+        />
+        <button
+          type="button"
+          className="hud-btn min-w-[4.5rem]"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy || listening}
+          aria-label="Anexar ficheiro"
+        >
+          Anexo
+        </button>
         <button
           type="button"
           onClick={() => void toggleMic()}

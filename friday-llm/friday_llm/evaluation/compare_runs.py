@@ -65,3 +65,31 @@ def compare_reports(
             "tool_call_rate": round(p_tools - b_tools, 3),
         },
     }
+
+
+def main(argv: list[str] | None = None) -> None:
+    import argparse
+    import sys
+
+    p = argparse.ArgumentParser(description="Compare baseline vs candidate eval reports")
+    p.add_argument("--baseline", required=True)
+    p.add_argument("--candidate", required=True)
+    p.add_argument("--out", default="")
+    p.add_argument("--min-delta", type=float, default=-0.05)
+    args = p.parse_args(argv)
+    report = compare_reports(args.baseline, args.candidate)
+    text = json.dumps(report, ensure_ascii=False, indent=2)
+    print(text)
+    if args.out:
+        out = resolve_path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+    delta = (report.get("delta") or {}).get("pass_rate")
+    if delta is not None and float(delta) < float(args.min_delta):
+        print(f"GATE FAIL: pass_rate delta {delta} < {args.min_delta}", file=sys.stderr)
+        sys.exit(2)
+    print("GATE OK" if delta is not None else "GATE SKIP (no pilot)")
+
+
+if __name__ == "__main__":
+    main()

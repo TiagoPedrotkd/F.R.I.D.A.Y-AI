@@ -34,6 +34,7 @@ voice = [
 rag = [
     "chromadb>=0.5.0",
     "sentence-transformers>=3.0.0",
+    "pypdf>=4.0.0",
 ]
 api = [
     "fastapi>=0.115.0,<1.0.0",
@@ -50,7 +51,7 @@ llm = [
     "sentencepiece>=0.2.0",
     "protobuf>=4.25.0,<7.0.0",
     "numpy>=1.26.0,<2.1.0",
-    "bitsandbytes>=0.43.0; platform_system != 'Windows'",
+    "bitsandbytes>=0.46.1",
     "PyYAML>=6.0",
 ]
 dev = [

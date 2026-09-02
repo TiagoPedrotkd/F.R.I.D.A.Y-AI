@@ -65,8 +65,9 @@ def test_default_registry_has_core_skills():
     assert "get_current_time" in names  # alias
     assert "get_world_news" in names
     assert "search_web" in names
+    assert "research_web" in names
     assert "fetch_url" in names
-    assert "format_json" in names
+    assert "calculate" in names
 
 
 def test_intent_time_and_news():
@@ -82,9 +83,9 @@ def test_intent_time_and_news():
 
 
 def test_intent_search_system_json():
-    assert match_skill("Pesquisa o Phi-4") == "search_web"
+    assert match_skill("Pesquisa o Phi-4") == "research_web"
     name, args = match_skill_with_args("Pesquisa o Phi-4")
-    assert name == "search_web"
+    assert name == "research_web"
     assert "Phi-4" in args["query"]
     assert match_skill("Que sistema operativo estou a usar?") == "get_system_info"
     name, args = match_skill_with_args('Formata este JSON: {"x":1}')
@@ -126,9 +127,10 @@ async def test_search_web_empty_query():
 
 
 @pytest.mark.asyncio
-async def test_open_monitor_mocked():
+async def test_open_monitor_mocked(monkeypatch):
     from friday.skills.news import OpenWorldMonitorSkill
 
+    monkeypatch.delenv("FRIDAY_NO_BROWSER", raising=False)
     with patch("friday.skills.news.rss_common.webbrowser.open") as open_mock:
         skill = OpenWorldMonitorSkill()
         # Ensure snapshot or template exists path — may fail if missing; create via write

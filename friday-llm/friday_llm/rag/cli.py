@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from friday_llm.rag.index import build_rag_corpus, index_rag_corpus, smoke_search
+from friday_llm.rag.quality_gate import run_quality_gate
 from friday_llm.util import load_yaml, resolve_path
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,12 @@ def run_fase5(
     if "smoke" in steps:
         smoke_meta = smoke_search(config_path, query=query)
 
+    gate_meta: dict | None = None
+    if "gate" in steps:
+        gate_meta = run_quality_gate(config_path)
+        if not gate_meta.get("passed", False):
+            raise SystemExit(2)
+
     if "report" in steps or only is None:
         if build_meta is None:
             bp = resolve_path(cfg.get("report_json") or "friday-llm/reports/phase5_rag_build.json")
@@ -121,16 +128,19 @@ def run_fase5(
             meta_file = ip / "index_meta.json"
             if meta_file.is_file():
                 index_meta = json.loads(meta_file.read_text(encoding="utf-8"))
-        return _write_report(cfg, build=build_meta, index=index_meta, smoke=smoke_meta)
+        stats = _write_report(cfg, build=build_meta, index=index_meta, smoke=smoke_meta)
+        if gate_meta:
+            stats["gate"] = gate_meta
+        return stats
 
-    return {"build": build_meta, "index": index_meta, "smoke": smoke_meta}
+    return {"build": build_meta, "index": index_meta, "smoke": smoke_meta, "gate": gate_meta}
 
 
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO)
     p = argparse.ArgumentParser(description="FRIDAY LLM Fase 5 RAG")
     p.add_argument("--config", default="friday-llm/configs/fase5_rag.yaml")
-    p.add_argument("--only", choices=["build", "index", "smoke", "report"], default=None)
+    p.add_argument("--only", choices=["build", "index", "smoke", "gate", "report"], default=None)
     p.add_argument("--query", default=None)
     p.add_argument("--skip-index", action="store_true")
     args = p.parse_args(argv)

@@ -33,10 +33,9 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host @"
 
 SFT concluido.
-Proximos passos manuais:
-  1. Export: python -m friday_llm.export.cli --config friday-llm/configs/fase6_export.yaml
-  2. Eval vs Phi-4 (gate)
-  3. So entao troca LM_STUDIO_MODEL / producao
+Proximos passos:
+  .\scripts\incremental_export_eval.ps1 -SkipSft [-RunEval]
+  (ou manual: export + eval gate + so entao LM_STUDIO_MODEL)
 
 Ver friday-llm/docs/AFTER_INCREMENTAL_SFT.md
 "@

@@ -57,6 +57,7 @@ class SkillRegistry:
 def default_registry(settings: Settings | None = None) -> SkillRegistry:
     settings = settings or get_settings()
 
+    from friday.skills.local.calculate import CalculateSkill
     from friday.skills.local.datetime_skill import DateTimeSkill
     from friday.skills.local.format_json import FormatJsonSkill
     from friday.skills.local.llm_text_skills import ExplainCodeSkill, SummarizeSkill
@@ -74,6 +75,7 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     )
     from friday.skills.rag.search_docs import SearchDocsSkill
     from friday.skills.web.fetch_url import FetchUrlSkill
+    from friday.skills.web.research_web import ResearchWebSkill
     from friday.skills.web.search_web import SearchWebSkill
 
     registry = SkillRegistry()
@@ -82,12 +84,16 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     registry.register(SystemInfoSkill())
     registry.register(WordCountSkill())
     registry.register(FormatJsonSkill())
+    registry.register(CalculateSkill())
     registry.register(SummarizeSkill())
     registry.register(ExplainCodeSkill())
     registry.register(RememberSkill())
     registry.register(RecallSkill())
     registry.register(
         SearchWebSkill(max_results_default=settings.web_search_max_results)
+    )
+    registry.register(
+        ResearchWebSkill(max_results_default=settings.web_search_max_results)
     )
     registry.register(SearchDocsSkill(settings=settings))
     registry.register(FetchUrlSkill())

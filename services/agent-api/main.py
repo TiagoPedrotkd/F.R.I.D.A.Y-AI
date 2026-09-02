@@ -14,17 +14,18 @@ from typing import Any, Literal
 
 import httpx
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from friday.audio.capture import AudioBuffer
 from friday.config import get_settings
+from friday.obs import new_request_id
 from friday.safety.confirmation import PendingAction
 from friday.tts.piper_engine import PiperEngine
 
-from session_store import run_chat, store
+from session_store import run_chat, run_chat_stream, store
 
 _MONITORS_DIR = Path(__file__).resolve().parents[2] / "friday" / "monitors"
 
@@ -52,6 +53,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    rid = request.headers.get("x-request-id") or new_request_id()
+    request.state.request_id = rid
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = rid
+    return response
+
 
 _piper: PiperEngine | None = None
 _whisper = None
@@ -98,6 +109,35 @@ def min_model(name: str) -> str:
 class ChatRequest(BaseModel):
     session_id: str
     text: str = Field(min_length=1, max_length=8000)
+    stream: bool = False
+    # regenerate: drop last assistant turn before answering again
+    regenerate: bool = False
+    # continue: ask model to continue previous assistant reply
+    continue_reply: bool = False
+
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    message_id: str | None = None
+    rating: Literal["up", "down"]
+    reply_text: str | None = None
+    user_text: str | None = None
+    comment: str | None = None
+    grounding_score: float | None = None
+
+
+class PrefsUpdate(BaseModel):
+    language: Literal["pt", "en"] | None = None
+    tts_enabled: bool | None = None
+    volume: float | None = Field(default=None, ge=0.0, le=1.0)
+    rate: float | None = Field(default=None, ge=0.5, le=2.0)
+    autoplay: bool | None = None
+    interrupt: bool | None = None
+    auto_open_monitors: bool | None = None
+    high_contrast: bool | None = None
+    reduced_motion: bool | None = None
+    user_address: str | None = None
+    theme: Literal["dark", "light"] | None = None
 
 
 class ConfirmRequest(BaseModel):
@@ -126,12 +166,13 @@ async def _probe_llm() -> dict[str, Any]:
             r = await client.get(f"{HEALTHCHECK_URL.rstrip('/')}/health/llm")
             data = r.json()
             ok = r.status_code == 200 and data.get("llm", {}).get("ok", False)
-            return {
-                "ok": ok,
-                "via": "healthcheck",
-                "model": data.get("llm", {}).get("model") or settings.lm_studio_model,
-                "error": data.get("llm", {}).get("error"),
-            }
+            if ok:
+                return {
+                    "ok": True,
+                    "via": "healthcheck",
+                    "model": data.get("llm", {}).get("model") or settings.lm_studio_model,
+                    "error": None,
+                }
     except Exception as exc:
         logger.debug("Healthcheck LLM probe failed: %s", exc)
 
@@ -140,19 +181,37 @@ async def _probe_llm() -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=2.5) as client:
             r = await client.get(f"{base}/models")
             ok = r.status_code == 200
-            return {
-                "ok": ok,
-                "via": "lm_studio",
-                "model": settings.lm_studio_model,
-                "error": None if ok else f"HTTP {r.status_code}",
-            }
+            if ok:
+                return {
+                    "ok": True,
+                    "via": "lm_studio",
+                    "model": settings.lm_studio_model,
+                    "error": None,
+                }
     except Exception as exc:
-        return {
-            "ok": False,
-            "via": "lm_studio",
-            "model": settings.lm_studio_model,
-            "error": str(exc),
-        }
+        logger.debug("LM Studio probe failed: %s", exc)
+
+    fb = (settings.llm_fallback_base_url or "").strip().rstrip("/")
+    if fb:
+        try:
+            async with httpx.AsyncClient(timeout=2.5) as client:
+                r = await client.get(f"{fb}/models")
+                if r.status_code == 200:
+                    return {
+                        "ok": True,
+                        "via": "fallback",
+                        "model": settings.llm_fallback_model or settings.lm_studio_model,
+                        "error": None,
+                    }
+        except Exception as exc:
+            logger.debug("Fallback LLM probe failed: %s", exc)
+
+    return {
+        "ok": False,
+        "via": "lm_studio",
+        "model": settings.lm_studio_model,
+        "error": "LLM primary and fallback unavailable",
+    }
 
 
 @app.get("/")
@@ -176,10 +235,94 @@ async def health():
     }
 
 
+@app.get("/health/ready")
+async def health_ready():
+    """Deep readiness: LLM reachable, RAG index present, sessions disk writable."""
+    settings = get_settings()
+    llm = await _probe_llm()
+    checks: dict[str, Any] = {"llm": llm}
+
+    # Disk
+    sessions = Path(settings.sessions_dir)
+    try:
+        sessions.mkdir(parents=True, exist_ok=True)
+        probe = sessions / ".ready_probe"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        checks["disk"] = {"ok": True, "path": str(sessions)}
+    except OSError as exc:
+        checks["disk"] = {"ok": False, "error": str(exc)}
+
+    # RAG
+    rag_ok = False
+    rag_backend = "off"
+    rag_error = None
+    try:
+        from friday.rag.doc_store import get_doc_store
+
+        store_docs = get_doc_store(settings)
+        rag_backend = store_docs.backend
+        rag_ok = bool(store_docs.available) or rag_backend == "keyword"
+        checks["rag"] = {
+            "ok": rag_ok,
+            "backend": rag_backend,
+            "index_dir": str(settings.rag_index_dir),
+        }
+    except Exception as exc:
+        rag_error = str(exc)
+        checks["rag"] = {"ok": False, "error": rag_error}
+
+    ready = bool(llm.get("ok")) and bool(checks.get("disk", {}).get("ok"))
+    return {
+        "status": "ready" if ready else "degraded",
+        "ready": ready,
+        "service": SERVICE_NAME,
+        "version": APP_VERSION,
+        "checks": checks,
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
+
+
+@app.post("/v1/admin/rag-reload")
+async def rag_reload():
+    from friday.rag.doc_store import reload_doc_store
+
+    store_docs = reload_doc_store(get_settings())
+    return {
+        "ok": True,
+        "backend": store_docs.backend,
+        "available": store_docs.available,
+    }
+
+
+@app.get("/v1/metrics/summary")
+async def metrics_summary():
+    from friday.quality.metrics_dashboard import summarize_metrics
+
+    return summarize_metrics()
+
+
+@app.get("/v1/metrics/dashboard")
+async def metrics_dashboard():
+    from friday.quality.metrics_dashboard import render_dashboard_html, summarize_metrics
+
+    html = render_dashboard_html(summarize_metrics())
+    return Response(content=html, media_type="text/html; charset=utf-8")
+
+
+@app.post("/v1/admin/feedback-export")
+async def feedback_export():
+    from friday.quality.feedback_to_datasets import export_feedback_datasets
+
+    settings = get_settings()
+    return export_feedback_datasets(settings.feedback_path)
+
+
 @app.get("/v1/status")
 async def status():
     llm = await _probe_llm()
     demo = not llm["ok"]
+    settings = get_settings()
     return {
         "status": "ok" if llm["ok"] else "degraded",
         "service": SERVICE_NAME,
@@ -187,7 +330,9 @@ async def status():
         "backend": True,
         "llm": llm,
         "demo": demo,
-        "auto_open_monitors": get_settings().auto_open_monitors,
+        "auto_open_monitors": settings.auto_open_monitors,
+        "web_source_required": settings.web_source_required,
+        "fallback_configured": bool(settings.llm_fallback_base_url),
         "timestamp": datetime.now(UTC).isoformat(),
     }
 
@@ -201,6 +346,11 @@ async def create_session():
         "last_language": session.memory.last_language,
         "auto_open_monitors": get_settings().auto_open_monitors,
     }
+
+
+@app.get("/v1/sessions")
+async def list_sessions(limit: int = 40):
+    return {"sessions": store.list_summaries(limit=max(1, min(limit, 100)))}
 
 
 @app.get("/v1/sessions/{session_id}")
@@ -225,6 +375,8 @@ async def get_session(session_id: str):
         "last_monitor_type": session.memory.last_monitor_type,
         "pending_confirmation": pending,
         "auto_open_monitors": get_settings().auto_open_monitors,
+        "messages": session.memory.messages,
+        "session_summary": session.memory.session_summary,
     }
 
 
@@ -240,8 +392,158 @@ async def chat(body: ChatRequest):
     session = store.get(body.session_id)
     if not session:
         raise HTTPException(404, "Session not found")
-    result = await run_chat(session, body.text.strip())
+
+    text = body.text.strip()
+    if body.regenerate:
+        # Remove last assistant message so we redo from last user turn
+        msgs = session.memory.messages
+        if msgs and msgs[-1].get("role") == "assistant":
+            session.memory._messages.pop()
+        if msgs and session.memory.messages and session.memory.messages[-1].get("role") == "user":
+            text = str(session.memory.messages[-1]["content"])
+            session.memory._messages.pop()
+    elif body.continue_reply:
+        text = (
+            "Continua a resposta anterior de forma natural, sem repetir o que ja disseste."
+            if not text or text in ("continuar", "continua", "continue")
+            else text
+        )
+
+    if body.stream:
+        return StreamingResponse(
+            run_chat_stream(session, text),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+    result = await run_chat(session, text)
     return result
+
+
+@app.post("/v1/uploads")
+async def upload_file(
+    session_id: str,
+    file: UploadFile = File(...),
+):
+    """Accept text/markdown/pdf/image attachments for the next chat turn context."""
+    from friday.safety.uploads import (
+        detect_kind,
+        extract_text_payload,
+        safe_filename,
+        session_upload_bytes,
+    )
+
+    session = store.get(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    settings = get_settings()
+    upload_dir = Path(settings.sessions_dir).parent / "uploads" / session_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    max_file = 8_000_000
+    max_session = 32_000_000
+    if session_upload_bytes(upload_dir) > max_session:
+        raise HTTPException(413, "Quota de anexos da sessao excedida (max 32MB)")
+
+    safe = safe_filename(file.filename or "upload.bin")
+    data = await file.read()
+    if len(data) > max_file:
+        raise HTTPException(413, "Ficheiro demasiado grande (max 8MB)")
+    if not data:
+        raise HTTPException(400, "Ficheiro vazio")
+
+    content_type = (file.content_type or "").lower()
+    kind, mime = detect_kind(data, safe, content_type)
+
+    # Reject claimed images/PDFs that fail magic-byte validation
+    claimed_image = content_type.startswith("image/") or safe.lower().endswith(
+        (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+    )
+    claimed_pdf = safe.lower().endswith(".pdf") or content_type == "application/pdf"
+    if claimed_image and kind != "image":
+        raise HTTPException(400, "Anexo rejeitado: assinatura de imagem invalida")
+    if claimed_pdf and kind != "pdf":
+        raise HTTPException(400, "Anexo rejeitado: PDF invalido")
+
+    dest = upload_dir / safe
+    dest.write_bytes(data)
+
+    extracted = extract_text_payload(data, kind, safe)
+    vision = False
+
+    if kind == "text":
+        session.memory.add_user(f"Anexo (text): {safe}\n{extracted}".strip())
+    elif kind == "image":
+        vision = bool(settings.llm_vision_enabled)
+        session.pending_attachments.append(
+            {
+                "path": str(dest),
+                "filename": safe,
+                "kind": "image",
+                "mime": mime,
+            }
+        )
+    elif kind == "pdf":
+        session.memory.add_user(f"Anexo (pdf): {safe}\n{extracted}".strip())
+    else:
+        session.memory.add_user(f"Anexo (file): {safe}\n{extracted}".strip())
+
+    store._save(session)
+    return {
+        "ok": True,
+        "filename": safe,
+        "kind": kind,
+        "mime": mime or None,
+        "vision": vision,
+        "pending": len(session.pending_attachments),
+        "chars": len(extracted),
+        "preview": extracted[:400],
+        # Do not expose absolute filesystem paths to the client
+    }
+
+
+@app.post("/v1/feedback")
+async def feedback(body: FeedbackRequest):
+    from friday.quality.feedback import FeedbackStore
+
+    settings = get_settings()
+    fb = FeedbackStore(settings.feedback_path)
+    row = fb.append(
+        {
+            "session_id": body.session_id,
+            "message_id": body.message_id,
+            "rating": body.rating,
+            "reply_text": (body.reply_text or "")[:4000],
+            "user_text": (body.user_text or "")[:2000],
+            "comment": (body.comment or "")[:1000],
+            "grounding_score": body.grounding_score,
+        }
+    )
+    return {"ok": True, "stored": row}
+
+
+@app.get("/v1/prefs")
+async def get_prefs(user_id: str = "default"):
+    from friday.llm.prompts import PROMPT_VERSION
+    from friday.memory.prefs_store import PrefsStore
+
+    settings = get_settings()
+    prefs = PrefsStore(settings.prefs_dir).get(user_id)
+    return {"user_id": user_id, "prefs": prefs, "prompt_version": PROMPT_VERSION}
+
+
+@app.put("/v1/prefs")
+async def put_prefs(body: PrefsUpdate, user_id: str = "default"):
+    from friday.memory.prefs_store import PrefsStore
+
+    settings = get_settings()
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    prefs = PrefsStore(settings.prefs_dir).update(patch, user_id=user_id)
+    return {"user_id": user_id, "prefs": prefs}
 
 
 @app.post("/v1/confirm")

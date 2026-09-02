@@ -66,7 +66,8 @@ Copia [`.cursor/mcp.json.example`](../../.cursor/mcp.json.example) para
 ```
 
 Se `${workspaceFolder}` nao funcionar no teu Cursor, usa o caminho absoluto
-para o `python.exe` do `.venv`.
+para o `python.exe` do `.venv` (o ficheiro local `.cursor/mcp.json` ja usa
+caminho absoluto neste repo).
 
 ### 6. Fluxo tipico
 

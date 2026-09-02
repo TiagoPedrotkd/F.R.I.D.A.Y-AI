@@ -22,8 +22,45 @@ class Settings(BaseSettings):
     )
     lm_studio_model: str = Field(default="microsoft/phi-4", alias="LM_STUDIO_MODEL")
     lm_studio_api_key: str = Field(default="lm-studio", alias="LM_STUDIO_API_KEY")
+    # Vision / multimodal (LM Studio VLM). Empty = auto-detect from /v1/models.
+    lm_studio_vision_model: str = Field(default="", alias="LM_STUDIO_VISION_MODEL")
+    llm_vision_enabled: bool = Field(default=True, alias="LLM_VISION_ENABLED")
     llm_timeout_seconds: float = Field(default=15.0, alias="LLM_TIMEOUT_SECONDS")
     llm_max_tool_rounds: int = Field(default=3, alias="LLM_MAX_TOOL_ROUNDS")
+    # Optional OpenAI-compatible fallback (Ollama / llama.cpp server)
+    llm_fallback_base_url: str = Field(default="", alias="LLM_FALLBACK_BASE_URL")
+    llm_fallback_model: str = Field(default="", alias="LLM_FALLBACK_MODEL")
+    llm_fallback_api_key: str = Field(default="ollama", alias="LLM_FALLBACK_API_KEY")
+    llm_fallback_vision_model: str = Field(
+        default="", alias="LLM_FALLBACK_VISION_MODEL"
+    )
+    # Vision stability
+    llm_vision_ping_ttl_seconds: float = Field(
+        default=300.0, alias="LLM_VISION_PING_TTL_SECONDS"
+    )
+    # Planner: off | hint | aggressive
+    llm_planner_mode: str = Field(default="aggressive", alias="LLM_PLANNER_MODE")
+    llm_planner_max_per_minute: int = Field(
+        default=12, alias="LLM_PLANNER_MAX_PER_MINUTE"
+    )
+    # Context budget + web grounding
+    llm_context_token_budget: int = Field(
+        default=6000, alias="LLM_CONTEXT_TOKEN_BUDGET"
+    )
+    web_source_required: bool = Field(default=True, alias="WEB_SOURCE_REQUIRED")
+    # Persistence / feedback
+    sessions_dir: Path = Field(
+        default=_REPO_ROOT / "data" / "sessions",
+        alias="SESSIONS_DIR",
+    )
+    feedback_path: Path = Field(
+        default=_REPO_ROOT / "data" / "feedback" / "feedback.jsonl",
+        alias="FEEDBACK_PATH",
+    )
+    prefs_dir: Path = Field(
+        default=_REPO_ROOT / "data" / "prefs",
+        alias="PREFS_DIR",
+    )
 
     # Wake word
     wake_keyword: str = Field(default="hey_jarvis", alias="WAKE_KEYWORD")
@@ -82,7 +119,7 @@ class Settings(BaseSettings):
     rag_embedding_model: str = Field(
         default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         alias="RAG_EMBEDDING_MODEL",
-    )
+    )  # short id "paraphrase-multilingual-MiniLM-L12-v2" also accepted
     rag_corpus_path: Path = Field(
         default=_REPO_ROOT / "friday-llm" / "data" / "rag" / "chunks.jsonl",
         alias="RAG_CORPUS_PATH",

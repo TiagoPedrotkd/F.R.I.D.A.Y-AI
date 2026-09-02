@@ -11,6 +11,7 @@ import { ErrorNotice } from './ErrorNotice'
 import { FridayCore } from './FridayCore'
 import { HudDateGauge, HudRingMeter } from './HudWidgets'
 import { QuickActions } from './QuickActions'
+import { SessionList } from './SessionList'
 import { SettingsPanel } from './SettingsPanel'
 import { SourceCard } from './SourceCard'
 import { VoiceControls } from './VoiceControls'
@@ -166,12 +167,16 @@ export function AppShell() {
               )}
               {sources.length > 0 && (
                 <div className="holo holo-frame max-h-40 space-y-2 overflow-y-auto p-3">
-                  <p className="holo-label">Fontes</p>
+                  <p className="holo-label">Fontes · Docs / Memória / Web</p>
                   {sources.map((s, i) => (
                     <SourceCard key={`${s.url}-${i}`} source={s} demo={demo} />
                   ))}
                 </div>
               )}
+              <div className="holo holo-frame p-3">
+                <p className="holo-label mb-2">Sessões</p>
+                <SessionList />
+              </div>
               <ActivityTimeline />
             </div>
           </div>
@@ -214,7 +219,7 @@ export function AppShell() {
             </div>
             {sources.length > 0 && (
               <div className="holo holo-frame space-y-2 p-3">
-                <p className="holo-label">Fontes</p>
+                <p className="holo-label">Fontes · Docs / Memória / Web</p>
                 {sources.map((s, i) => (
                   <SourceCard key={`m-${s.url}-${i}`} source={s} demo={demo} />
                 ))}

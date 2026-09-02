@@ -180,6 +180,17 @@ _WORD_PATTERNS = (
     r"\bword count\b",
 )
 
+_CALC_PATTERNS = (
+    r"\bcalcula\b",
+    r"\bcalcular\b",
+    r"\bquanto e\b",
+    r"\bquanto é\b",
+    r"\bwhat(?:'s| is) \d",
+    r"\bcalculate\b",
+    r"\bcompute\b",
+    r"[\d\s]+\s*[\+\-\*\/x×]\s*[\d\s]+",
+)
+
 _JSON_PATTERNS = (
     r"\bformata (este )?json\b",
     r"\borganiza (este )?json\b",
@@ -268,7 +279,31 @@ def _match_search(raw: str, norm: str) -> tuple[str, dict] | None:
             "search the web for ",
         ),
     )
-    return "search_web", {"query": query or raw}
+    return "research_web", {"query": query or raw}
+
+
+def _match_calculate(raw: str, norm: str) -> tuple[str, dict] | None:
+    if not _any_pattern(norm, _CALC_PATTERNS):
+        return None
+    expr = _extract_quoted_or_after(
+        raw,
+        (
+            "calcula ",
+            "calcular ",
+            "quanto e ",
+            "quanto é ",
+            "calculate ",
+            "compute ",
+            "what is ",
+            "what's ",
+        ),
+    )
+    # Keep digits and math operators only when possible
+    cleaned = re.sub(r"[^0-9+\-*/().%\s]", "", expr or raw)
+    cleaned = cleaned.strip()
+    if not cleaned or not re.search(r"\d", cleaned):
+        return None
+    return "calculate", {"expression": cleaned}
 
 
 def _match_json(raw: str, norm: str) -> tuple[str, dict] | None:
@@ -380,6 +415,9 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
         return hit
 
     hit = _match_search(raw, norm)
+    if hit:
+        return hit
+    hit = _match_calculate(raw, norm)
     if hit:
         return hit
     if _any_pattern(norm, _SYSTEM_PATTERNS):

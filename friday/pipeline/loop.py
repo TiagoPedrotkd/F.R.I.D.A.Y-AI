@@ -171,7 +171,7 @@ async def _process_turn(
         metrics.mark("capture_end")
         metrics.mark("stt_end")
 
-        reply = await llm.chat_with_tools(text, memory.messages, session=memory)
+        reply = await llm.chat_with_tools(text, memory.history_for_llm(), session=memory)
         metrics.mark("llm_end")
         logger.info("LLM reply (%d tool rounds): %s", reply.tool_rounds, reply.text)
 

@@ -99,6 +99,7 @@ class SearchWebSkill:
                 "url": href,
                 "snippet": snippet[:240],
                 "source": source,
+                "kind": "web",
             }
             if date:
                 entry["date"] = date

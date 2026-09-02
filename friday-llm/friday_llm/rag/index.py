@@ -202,12 +202,19 @@ def smoke_search(config_path: str, query: str | None = None) -> dict[str, Any]:
     paths = cfg.get("paths") or {}
     chunks = str(resolve_path(paths.get("chunks") or "friday-llm/data/rag/chunks.jsonl"))
     index_dir = resolve_path(paths.get("index_dir") or "data/rag_chroma")
+    embedding_model = str(
+        cfg.get("embedding_model")
+        or "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )
 
+    # Prefer embedding when Chroma index exists; fall back to keyword.
+    chroma_ok = (index_dir / "chroma").is_dir()
     settings = Settings(
         RAG_ENABLED=True,
-        RAG_BACKEND="keyword",
+        RAG_BACKEND="embedding" if chroma_ok else "keyword",
         RAG_CORPUS_PATH=chunks,
         RAG_INDEX_DIR=str(index_dir),
+        RAG_EMBEDDING_MODEL=embedding_model,
     )
     reset_doc_store()
     store = get_doc_store(settings)
@@ -224,7 +231,11 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO)
     p = argparse.ArgumentParser(description="Build and index RAG corpus")
     p.add_argument("--config", default="friday-llm/configs/fase5_rag.yaml")
-    p.add_argument("--only", choices=["build", "index", "smoke"], default=None)
+    p.add_argument(
+        "--only",
+        choices=["build", "index", "smoke", "gate"],
+        default=None,
+    )
     p.add_argument("--query", default=None)
     args = p.parse_args(argv)
 
@@ -235,7 +246,13 @@ def main(argv: list[str] | None = None) -> None:
     if args.only == "smoke":
         out = smoke_search(args.config, query=args.query)
         print(json.dumps(out, ensure_ascii=False, indent=2))
+    if args.only == "gate" or args.only is None:
+        from friday_llm.rag.quality_gate import run_quality_gate
 
+        gate = run_quality_gate(args.config)
+        print(json.dumps(gate, ensure_ascii=False, indent=2))
+        if not gate.get("passed", False):
+            raise SystemExit(2)
 
 if __name__ == "__main__":
     main()

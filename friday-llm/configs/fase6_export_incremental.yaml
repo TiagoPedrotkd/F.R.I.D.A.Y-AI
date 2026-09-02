@@ -1,0 +1,27 @@
+run_id: friday-fase6-export-incremental
+model_config: friday-llm/configs/base_model.yaml
+cpt_adapter: friday-llm/checkpoints/cpt-incremental-best/adapter
+sft_adapter: friday-llm/checkpoints/sft-incremental-best/adapter
+use_smoke_model: false
+merge_cpt: true
+output:
+  merged_hf: friday-llm/export/merged-friday-incremental
+  gguf_dir: friday-llm/export/gguf
+  gguf_basename: friday-qwen25-incremental-v1
+quantization:
+  - Q4_K_M
+llama_cpp:
+  path: ""
+  skip_if_missing: true
+eval:
+  baseline_path: friday-llm/reports/baseline_phi4.json
+  candidate_out: friday-llm/reports/incremental/phase6_eval_final.json
+  min_pass_rate_delta: -0.05
+run_eval: false
+report_md: friday-llm/reports/incremental/phase6_export_report.md
+report_json: friday-llm/reports/incremental/phase6_export_stats.json
+manifest_path: friday-llm/reports/incremental/export_manifest.json
+production_model: microsoft/phi-4
+notes: >
+  Export apos CPT incremental + SFT. Phi-4 em producao inalterado ate gate manual.
+  Define LLAMA_CPP_PATH para gerar GGUF; senao skip_if_missing mantem so HF merge.

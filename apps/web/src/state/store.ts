@@ -14,6 +14,11 @@ export type Message = {
   text: string
   demo?: boolean
   sources?: SourceItem[]
+  groundingScore?: number | null
+  confidenceScore?: number | null
+  confidenceLevel?: string | null
+  hallucinationRisk?: string | null
+  feedback?: 'up' | 'down' | null
 }
 
 type AppStore = {
@@ -48,6 +53,11 @@ type AppStore = {
   resolveConfirm: (decision: 'confirm' | 'cancel') => Promise<void>
   openMonitor: () => void
   seedDemoConfirm: () => Promise<void>
+  rateMessage: (messageId: string, rating: 'up' | 'down') => Promise<void>
+  regenerateLast: () => Promise<void>
+  continueLast: () => Promise<void>
+  restoreSession: (sessionId: string) => Promise<void>
+  uploadFile: (file: File) => Promise<void>
 }
 
 function uid() {
@@ -57,6 +67,8 @@ function uid() {
 function applyPrefsDom(prefs: Prefs) {
   document.documentElement.classList.toggle('high-contrast', prefs.highContrast)
   document.documentElement.classList.toggle('reduce-motion', prefs.reducedMotion)
+  document.documentElement.dataset.theme = prefs.theme || 'dark'
+  document.documentElement.style.colorScheme = prefs.theme === 'light' ? 'light' : 'dark'
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -86,6 +98,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
     setJson('prefs', prefs)
     applyPrefsDom(prefs)
     set({ prefs })
+    // Best-effort sync to server (structured prefs, Etapa 3)
+    void api
+      .savePrefs({
+        language: prefs.language,
+        theme: prefs.theme,
+        user_address: prefs.userAddress,
+        tts_enabled: prefs.ttsEnabled,
+        volume: prefs.volume,
+        rate: prefs.rate,
+        autoplay: prefs.autoplay,
+        interrupt: prefs.interrupt,
+        auto_open_monitors: prefs.autoOpenMonitors,
+        high_contrast: prefs.highContrast,
+        reduced_motion: prefs.reducedMotion,
+      })
+      .catch(() => undefined)
   },
   setSettingsOpen: (v) => set({ settingsOpen: v }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
@@ -96,17 +124,48 @@ export const useAppStore = create<AppStore>((set, get) => ({
     try {
       const status = await api.fetchStatus()
       const session = await api.createSession()
-      const demoForced = status.demo || get().prefs.demoMode
+      let prefs = {
+        ...get().prefs,
+        autoOpenMonitors: status.auto_open_monitors ?? get().prefs.autoOpenMonitors,
+      }
+      try {
+        const remote = await api.fetchPrefs()
+        const rp = remote.prefs || {}
+        prefs = {
+          ...prefs,
+          language: (rp.language as 'pt' | 'en') || prefs.language,
+          theme: rp.theme === 'light' || rp.theme === 'dark' ? rp.theme : prefs.theme,
+          userAddress:
+            typeof rp.user_address === 'string' && rp.user_address
+              ? rp.user_address
+              : prefs.userAddress,
+          ttsEnabled: typeof rp.tts_enabled === 'boolean' ? rp.tts_enabled : prefs.ttsEnabled,
+          volume: typeof rp.volume === 'number' ? rp.volume : prefs.volume,
+          rate: typeof rp.rate === 'number' ? rp.rate : prefs.rate,
+          autoplay: typeof rp.autoplay === 'boolean' ? rp.autoplay : prefs.autoplay,
+          interrupt: typeof rp.interrupt === 'boolean' ? rp.interrupt : prefs.interrupt,
+          autoOpenMonitors:
+            typeof rp.auto_open_monitors === 'boolean'
+              ? rp.auto_open_monitors
+              : prefs.autoOpenMonitors,
+          highContrast:
+            typeof rp.high_contrast === 'boolean' ? rp.high_contrast : prefs.highContrast,
+          reducedMotion:
+            typeof rp.reduced_motion === 'boolean' ? rp.reduced_motion : prefs.reducedMotion,
+        }
+        setJson('prefs', prefs)
+        applyPrefsDom(prefs)
+      } catch {
+        /* local prefs remain */
+      }
+      const demoForced = status.demo || prefs.demoMode
       set({
         sessionId: session.id,
         backendOk: true,
         llmOk: status.llm.ok,
         demoForced,
         state: transition(get().state, 'idle'),
-        prefs: {
-          ...get().prefs,
-          autoOpenMonitors: status.auto_open_monitors ?? get().prefs.autoOpenMonitors,
-        },
+        prefs,
       })
       api.subscribeEvents(session.id, (type, raw) => {
         const data = (raw as { data?: Record<string, unknown> })?.data ?? raw
@@ -175,7 +234,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
         offerMonitorPath = fixture.ui.monitor_path ?? null
         await new Promise((r) => setTimeout(r, 400))
       } else {
-        const res = await api.chat(sessionId!, content)
+        const assistantId = uid()
+        set({
+          messages: [
+            ...get().messages,
+            { id: assistantId, role: 'assistant', text: '', sources: [] },
+          ],
+        })
+        const res = await api.chatStream(sessionId!, content, (chunk) => {
+          set({
+            messages: get().messages.map((m) =>
+              m.id === assistantId ? { ...m, text: m.text + chunk } : m,
+            ),
+          })
+        })
         replyText = res.reply
         activity = res.activity ?? []
         sources = res.ui?.sources ?? []
@@ -189,6 +261,63 @@ export const useAppStore = create<AppStore>((set, get) => ({
               }`
             : null)
         if (res.error) set({ error: res.error })
+        set({
+          messages: get().messages.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  text: replyText,
+                  sources,
+                  groundingScore: res.ui?.grounding_score ?? res.grounding?.score ?? null,
+                  confidenceScore:
+                    (res.ui as { confidence_score?: number })?.confidence_score ??
+                    (res.confidence as { score?: number } | undefined)?.score ??
+                    null,
+                  confidenceLevel:
+                    (res.ui as { confidence_level?: string })?.confidence_level ??
+                    (res.confidence as { level?: string } | undefined)?.level ??
+                    null,
+                  hallucinationRisk:
+                    (res.ui as { hallucination_risk?: string })?.hallucination_risk ??
+                    (res.confidence as { hallucination_risk?: string } | undefined)
+                      ?.hallucination_risk ??
+                    null,
+                }
+              : m,
+          ),
+          activity,
+          sources,
+          country,
+          pending,
+          offerMonitorPath,
+          state: transition(
+            get().state,
+            pending ? 'awaiting_confirmation' : prefs.ttsEnabled && prefs.autoplay ? 'speaking' : 'idle',
+          ),
+        })
+
+        if (prefs.autoOpenMonitors && offerMonitorPath) {
+          openMonitorPath(offerMonitorPath, getAgentApiBase())
+        }
+
+        if (prefs.ttsEnabled && prefs.autoplay && !pending && !useDemo && sessionId) {
+          try {
+            const abort = new AbortController()
+            set({ ttsAbort: abort })
+            const bytes = await api.tts(replyText, sessionId, {
+              rate: prefs.rate,
+              language: prefs.language,
+            })
+            await playWavBytes(bytes, { volume: prefs.volume, signal: abort.signal })
+          } catch {
+            /* TTS optional */
+          } finally {
+            set({ ttsAbort: null, state: transition(get().state, pending ? 'awaiting_confirmation' : 'idle') })
+          }
+        } else if (!pending) {
+          set({ state: transition(get().state, 'idle') })
+        }
+        return
       }
 
       set({
@@ -359,5 +488,140 @@ export const useAppStore = create<AppStore>((set, get) => ({
       state: transition(get().state, 'awaiting_confirmation'),
       messages: [...get().messages, { id: uid(), role: 'assistant', text: res.reply }],
     })
+  },
+
+  rateMessage: async (messageId, rating) => {
+    const { sessionId, messages, demoForced, prefs } = get()
+    const msg = messages.find((m) => m.id === messageId)
+    if (!msg || msg.role !== 'assistant') return
+    set({
+      messages: messages.map((m) => (m.id === messageId ? { ...m, feedback: rating } : m)),
+    })
+    if (!sessionId || demoForced || prefs.demoMode) return
+    const userText = [...messages].reverse().find((m) => m.role === 'user')?.text
+    try {
+      await api.sendFeedback({
+        session_id: sessionId,
+        message_id: messageId,
+        rating,
+        reply_text: msg.text,
+        user_text: userText,
+        grounding_score: msg.groundingScore ?? null,
+      })
+    } catch {
+      /* feedback best-effort */
+    }
+  },
+
+  regenerateLast: async () => {
+    const { sessionId, messages, demoForced, prefs } = get()
+    if (!sessionId || demoForced || prefs.demoMode) return
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant' && !m.demo)
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+    if (!lastAssistant || !lastUser) return
+    set({
+      messages: messages.filter((m) => m.id !== lastAssistant.id),
+      state: transition(get().state, 'thinking'),
+    })
+    const assistantId = uid()
+    set({
+      messages: [...get().messages, { id: assistantId, role: 'assistant', text: '', sources: [] }],
+    })
+    try {
+      const res = await api.chatStream(
+        sessionId,
+        lastUser.text || '.',
+        (chunk) => {
+          set({
+            messages: get().messages.map((m) =>
+              m.id === assistantId ? { ...m, text: m.text + chunk } : m,
+            ),
+          })
+        },
+        { regenerate: true },
+      )
+      set({
+        messages: get().messages.map((m) =>
+          m.id === assistantId
+            ? {
+                ...m,
+                text: res.reply,
+                sources: res.ui?.sources ?? [],
+                groundingScore: res.ui?.grounding_score ?? null,
+                confidenceScore: res.ui?.confidence_score ?? null,
+                confidenceLevel: res.ui?.confidence_level ?? null,
+                hallucinationRisk: res.ui?.hallucination_risk ?? null,
+              }
+            : m,
+        ),
+        sources: res.ui?.sources ?? [],
+        state: transition(get().state, 'idle'),
+      })
+    } catch (e) {
+      set({
+        error: e instanceof Error ? e.message : 'Falha ao regenerar',
+        state: transition(get().state, 'error'),
+      })
+    }
+  },
+
+  continueLast: async () => {
+    const { sessionId, demoForced, prefs } = get()
+    if (!sessionId || demoForced || prefs.demoMode) return
+    await get().sendText('continua')
+  },
+
+  restoreSession: async (id) => {
+    try {
+      const data = await api.getSession(id)
+      const messages: Message[] = (data.messages || []).map((m) => ({
+        id: uid(),
+        role: m.role === 'assistant' || m.role === 'system' ? m.role : 'user',
+        text: m.content,
+      }))
+      set({
+        sessionId: data.id,
+        messages,
+        country: data.last_country ?? null,
+        state: transition(get().state, 'idle'),
+        error: null,
+      })
+      api.subscribeEvents(data.id, (type, raw) => {
+        const eventData = (raw as { data?: Record<string, unknown> })?.data ?? raw
+        if (type === 'state' && eventData && typeof eventData === 'object' && 'state' in (eventData as object)) {
+          const s = (eventData as { state: FridayState }).state
+          if (s) get().setState(s)
+        }
+      })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Nao foi possivel restaurar a sessao' })
+    }
+  },
+
+  uploadFile: async (file) => {
+    const { sessionId, demoForced, prefs } = get()
+    if (!sessionId || demoForced || prefs.demoMode) {
+      set({ error: 'Upload indisponivel em modo demo.' })
+      return
+    }
+    try {
+      const res = await api.uploadAttachment(sessionId, file)
+      const visionHint =
+        res.kind === 'image' && res.vision
+          ? ' — vision activo na proxima mensagem'
+          : ''
+      set({
+        messages: [
+          ...get().messages,
+          {
+            id: uid(),
+            role: 'system',
+            text: `Anexo recebido (${res.kind}): ${res.filename}${visionHint}`,
+          },
+        ],
+      })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Falha no upload' })
+    }
   },
 }))

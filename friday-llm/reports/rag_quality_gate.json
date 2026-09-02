@@ -1,0 +1,256 @@
+{
+  "ok": true,
+  "n": 11,
+  "hits_at_k": 6,
+  "recall@3": 0.5455,
+  "mrr": 0.4848,
+  "details": [
+    {
+      "query": "Como ligar ao LM Studio?",
+      "hit": true,
+      "rank": 1,
+      "top": [
+        {
+          "title": "LM Studio setup",
+          "id": "docs/fase-0/lm-studio-setup.md",
+          "score": 0.6708
+        },
+        {
+          "title": "README",
+          "id": "README.md",
+          "score": 0.3401
+        },
+        {
+          "title": "mic troubleshooting",
+          "id": "docs/fase-1/mic-troubleshooting.md",
+          "score": 0.3344
+        }
+      ]
+    },
+    {
+      "query": "Qual a variavel LM_STUDIO_MODEL no .env?",
+      "hit": true,
+      "rank": 1,
+      "top": [
+        {
+          "title": "LM Studio setup",
+          "id": "docs/fase-0/lm-studio-setup.md",
+          "score": 0.5921
+        },
+        {
+          "title": "README",
+          "id": "friday-llm/README.md",
+          "score": 0.5089
+        },
+        {
+          "title": "README",
+          "id": "README.md",
+          "score": 0.4786
+        }
+      ]
+    },
+    {
+      "query": "Como correr o agent-api e a UI web?",
+      "hit": false,
+      "rank": null,
+      "top": [
+        {
+          "title": "Skills contract",
+          "id": "docs/fase-1/skills-contract.md",
+          "score": 0.4713
+        },
+        {
+          "title": "LM Studio setup",
+          "id": "docs/fase-0/lm-studio-setup.md",
+          "score": 0.3328
+        },
+        {
+          "title": "conversacao",
+          "id": "docs/fase-1/conversacao.md",
+          "score": 0.3132
+        }
+      ]
+    },
+    {
+      "query": "F.R.I.D.A.Y voice pipeline Whisper Piper",
+      "hit": true,
+      "rank": 1,
+      "top": [
+        {
+          "title": "mic troubleshooting",
+          "id": "docs/fase-1/mic-troubleshooting.md",
+          "score": 0.4568
+        },
+        {
+          "title": "LM Studio setup",
+          "id": "docs/fase-0/lm-studio-setup.md",
+          "score": 0.3381
+        },
+        {
+          "title": "conversacao",
+          "id": "docs/fase-1/conversacao.md",
+          "score": 0.2747
+        }
+      ]
+    },
+    {
+      "query": "Wake word openWakeWord hey jarvis",
+      "hit": false,
+      "rank": null,
+      "top": [
+        {
+          "title": "conversacao",
+          "id": "docs/fase-1/conversacao.md",
+          "score": 0.3206
+        },
+        {
+          "title": "Skills contract",
+          "id": "docs/fase-1/skills-contract.md",
+          "score": 0.2882
+        },
+        {
+          "title": "README",
+          "id": "docs/fase-1/README.md",
+          "score": 0.2745
+        }
+      ]
+    },
+    {
+      "query": "Tres camadas de conhecimento CPT SFT RAG",
+      "hit": true,
+      "rank": 1,
+      "top": [
+        {
+          "title": "Tres camadas de conhecimento",
+          "id": "friday-llm/reports/phase0_audit.md",
+          "score": 0.71
+        },
+        {
+          "title": "INCREMENTAL TRAINER",
+          "id": "friday-llm/docs/INCREMENTAL_TRAINER.md",
+          "score": 0.3673
+        },
+        {
+          "title": "conversacao",
+          "id": "docs/fase-1/conversacao.md",
+          "score": 0.3367
+        }
+      ]
+    },
+    {
+      "query": "Onde fica o indice friday_docs rag_chroma?",
+      "hit": false,
+      "rank": null,
+      "top": [
+        {
+          "title": "README",
+          "id": "friday-llm/README.md",
+          "score": 0.3345
+        },
+        {
+          "title": "Tres camadas de conhecimento",
+          "id": "friday-llm/reports/phase0_audit.md",
+          "score": 0.3122
+        },
+        {
+          "title": "README",
+          "id": "README.md",
+          "score": 0.3072
+        }
+      ]
+    },
+    {
+      "query": "Skill search_docs documentos internos",
+      "hit": false,
+      "rank": null,
+      "top": [
+        {
+          "title": "conversacao",
+          "id": "docs/fase-1/conversacao.md",
+          "score": 0.4033
+        },
+        {
+          "title": "Skills contract",
+          "id": "docs/fase-1/skills-contract.md",
+          "score": 0.385
+        },
+        {
+          "title": "Tres camadas de conhecimento",
+          "id": "friday-llm/reports/phase0_audit.md",
+          "score": 0.3835
+        }
+      ]
+    },
+    {
+      "query": "O que diz o manual sobre VLAN IoT?",
+      "hit": true,
+      "rank": 3,
+      "top": [
+        {
+          "title": "LM Studio setup",
+          "id": "docs/fase-0/lm-studio-setup.md",
+          "score": 0.4135
+        },
+        {
+          "title": "mic troubleshooting",
+          "id": "docs/fase-1/mic-troubleshooting.md",
+          "score": 0.3717
+        },
+        {
+          "title": "rede vlan openwrt wr11000",
+          "id": "docs/arquitectura/rede-vlan-openwrt-wr11000.md",
+          "score": 0.359
+        }
+      ]
+    },
+    {
+      "query": "Como funcionam as noticias mundiais e o monitor?",
+      "hit": true,
+      "rank": 1,
+      "top": [
+        {
+          "title": "noticias financas worldwide",
+          "id": "docs/fase-1/noticias-financas-worldwide.md",
+          "score": 0.5596
+        },
+        {
+          "title": "Tres camadas de conhecimento",
+          "id": "friday-llm/reports/phase0_audit.md",
+          "score": 0.2761
+        },
+        {
+          "title": "noticias financas worldwide",
+          "id": "docs/fase-1/noticias-financas-worldwide.md",
+          "score": 0.1936
+        }
+      ]
+    },
+    {
+      "query": "WEB_SOURCE_REQUIRED research_web citacoes",
+      "hit": false,
+      "rank": null,
+      "top": [
+        {
+          "title": "noticias financas worldwide",
+          "id": "docs/fase-1/noticias-financas-worldwide.md",
+          "score": 0.349
+        },
+        {
+          "title": "conversacao",
+          "id": "docs/fase-1/conversacao.md",
+          "score": 0.32
+        },
+        {
+          "title": "README",
+          "id": "docs/fase-1/README.md",
+          "score": 0.2902
+        }
+      ]
+    }
+  ],
+  "backend": "embedding",
+  "min_recall_at_k": 0.5,
+  "min_mrr": 0.35,
+  "passed": true,
+  "gold_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\rag\\gold_queries.yaml"
+}

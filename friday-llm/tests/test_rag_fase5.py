@@ -144,7 +144,22 @@ def test_fase5_config_valid():
     assert resolve_path(cfg["paths"]["chunks"]).parent.exists()
 
 
-def test_smoke_search_keyword():
+def test_smoke_search_uses_available_backend():
     out = smoke_search("friday-llm/configs/fase5_rag.yaml", query="LM Studio")
-    assert out["backend"] == "keyword"
+    assert out["backend"] in ("keyword", "embedding")
     assert "LM Studio" in out["queries"]
+    # When Chroma index exists, prefer embedding
+    from pathlib import Path
+
+    if Path("data/rag_chroma/chroma").is_dir():
+        assert out["backend"] == "embedding"
+        assert len(out["queries"]["LM Studio"]) >= 1
+
+
+def test_normalize_embedding_model_short_id():
+    from friday_llm.rag.embeddings import normalize_embedding_model
+
+    assert (
+        normalize_embedding_model("paraphrase-multilingual-MiniLM-L12-v2")
+        == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )

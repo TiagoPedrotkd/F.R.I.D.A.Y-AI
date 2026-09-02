@@ -42,6 +42,11 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Print progress.json and exit",
     )
+    p.add_argument(
+        "--prefer-domain",
+        action="store_true",
+        help="Prefer AI/assistant/local-domain docs from the pool",
+    )
     args = p.parse_args(argv)
 
     if args.status:
@@ -57,6 +62,7 @@ def main(argv: list[str] | None = None) -> None:
         steps_per_doc=args.steps_per_doc,
         min_steps=args.min_steps,
         use_smoke_model=args.smoke,
+        prefer_domain=args.prefer_domain,
     )
     print(json.dumps(progress, ensure_ascii=False, indent=2))
 

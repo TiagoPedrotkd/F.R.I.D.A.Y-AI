@@ -7,10 +7,13 @@ import json
 import time
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, AsyncIterator
 
 from friday.config import Settings, get_settings
+from friday.llm.prompts import PROMPT_VERSION
 from friday.llm.tool_runner import ToolRunner
+from friday.memory.session_persistence import SessionPersistence
 from friday.memory.short_term import ShortTermMemory
 from friday.safety.confirmation import ConfirmationGate
 from friday.skills.registry import default_registry
@@ -23,16 +26,26 @@ class Session:
     gate: ConfirmationGate
     created_at: float = field(default_factory=time.time)
     event_queue: asyncio.Queue = field(default_factory=asyncio.Queue)
+    pending_attachments: list[dict[str, Any]] = field(default_factory=list)
 
     async def emit(self, event_type: str, data: dict[str, Any] | None = None) -> None:
         await self.event_queue.put(
             {"type": event_type, "data": data or {}, "ts": time.time()}
         )
 
+    def take_attachments(self) -> list[dict[str, Any]]:
+        """Consume pending uploads for the next chat turn."""
+        items = list(self.pending_attachments)
+        self.pending_attachments.clear()
+        return items
+
 
 class SessionStore:
-    def __init__(self) -> None:
+    def __init__(self, persist_dir: Path | None = None) -> None:
         self._sessions: dict[str, Session] = {}
+        settings = get_settings()
+        root = Path(persist_dir or settings.sessions_dir)
+        self._persist = SessionPersistence(root)
 
     def create(self) -> Session:
         sid = uuid.uuid4().hex
@@ -42,13 +55,38 @@ class SessionStore:
             gate=ConfirmationGate(),
         )
         self._sessions[sid] = session
+        self._save(session)
         return session
 
     def get(self, session_id: str) -> Session | None:
-        return self._sessions.get(session_id)
+        hit = self._sessions.get(session_id)
+        if hit:
+            return hit
+        data = self._persist.load(session_id)
+        if not data:
+            return None
+        mem = ShortTermMemory.from_dict(data.get("memory") or {})
+        session = Session(
+            id=session_id,
+            memory=mem,
+            gate=ConfirmationGate(),
+            created_at=float(data.get("updated_at") or time.time()),
+        )
+        self._sessions[session_id] = session
+        return session
 
     def delete(self, session_id: str) -> bool:
+        self._persist.delete(session_id)
         return self._sessions.pop(session_id, None) is not None
+
+    def list_summaries(self, *, limit: int = 50) -> list[dict[str, Any]]:
+        return self._persist.list_sessions(limit=limit)
+
+    def _save(self, session: Session) -> None:
+        try:
+            self._persist.save(session.id, session.memory)
+        except OSError:
+            pass
 
 
 store = SessionStore()
@@ -61,11 +99,14 @@ def _friendly_tool_label(name: str) -> str:
         "get_world_finance_news": "A consultar noticias financeiras",
         "get_country_briefing": "A preparar briefing do pais",
         "search_web": "A pesquisar na Web",
+        "research_web": "A investigar fontes na Web",
         "search_docs": "A pesquisar documentos internos",
         "fetch_url": "A verificar a pagina",
+        "calculate": "A calcular",
         "open_world_monitor": "A abrir o monitor mundial",
         "open_finance_world_monitor": "A abrir o monitor financeiro",
-        "get_system_info": "A ler informacao do computador",
+        "vision": "A analisar a imagem",
+    "get_system_info": "A ler informacao do computador",
         "word_count": "A contar palavras",
         "format_json": "A formatar JSON",
         "remember": "A guardar na memoria",
@@ -110,7 +151,6 @@ def build_activity(skill_name: str | None, metadata: dict | None) -> list[dict[s
 def extract_ui_payload(reply_text: str, metadata: dict | None) -> dict[str, Any]:
     meta = metadata or {}
     sources = []
-    headlines = []
     results = meta.get("results") or []
     for r in results:
         if isinstance(r, dict):
@@ -124,8 +164,15 @@ def extract_ui_payload(reply_text: str, metadata: dict | None) -> dict[str, Any]
                     "kind": r.get("kind"),
                 }
             )
-    # Headlines inferred from news-like replies are left to frontend parsing of content
-    # when metadata has headlines_only
+    if meta.get("url") and not any(s.get("url") == meta.get("url") for s in sources):
+        sources.append(
+            {
+                "title": meta.get("title") or meta.get("url"),
+                "url": meta.get("url"),
+                "snippet": "",
+                "source": meta.get("source") or "",
+            }
+        )
     monitor_kind = None
     if meta.get("auto_open_monitor") in ("world", "finance"):
         monitor_kind = meta["auto_open_monitor"]
@@ -140,13 +187,22 @@ def extract_ui_payload(reply_text: str, metadata: dict | None) -> dict[str, Any]
         monitor_kind
         or meta.get("kind") in ("news", "finance", "briefing", "monitor")
     )
-    # Prefer snapshot (data-rich); API generates it on demand if missing
     country_code = meta.get("country")
     monitor_path = None
     if monitor_kind:
         monitor_path = f"/monitors/{monitor_kind}_snapshot.html"
         if country_code and str(country_code).upper() != "WW":
             monitor_path += f"?country={str(country_code).upper()}"
+    grounding = meta.get("grounding") or {}
+    if meta.get("kind") == "document":
+        for s in sources:
+            s.setdefault("kind", "document")
+    if meta.get("kind") == "memory":
+        for s in sources:
+            s.setdefault("kind", "memory")
+    if meta.get("kind") == "research" or meta.get("pages"):
+        for s in sources:
+            s.setdefault("kind", s.get("kind") or "web")
     return {
         "sources": sources,
         "headlines_only": bool(meta.get("headlines_only")),
@@ -154,10 +210,76 @@ def extract_ui_payload(reply_text: str, metadata: dict | None) -> dict[str, Any]
         "country": meta.get("country"),
         "kind": meta.get("kind"),
         "document_search": meta.get("kind") == "document",
+        "personal_memory": meta.get("kind") == "memory",
         "opened": meta.get("opened"),
         "monitor_kind": monitor_kind,
         "offer_monitor": offer_monitor,
         "monitor_path": monitor_path,
+        "grounding_score": grounding.get("score"),
+        "grounded": grounding.get("grounded"),
+        "plan_steps": meta.get("plan_steps"),
+        "confidence": meta.get("confidence"),
+        "confidence_score": (meta.get("confidence") or {}).get("score"),
+        "confidence_level": (meta.get("confidence") or {}).get("level"),
+        "hallucination_risk": (meta.get("confidence") or {}).get("hallucination_risk"),
+    }
+
+
+def _finalize_chat(
+    session: Session,
+    text: str,
+    reply,
+    attachments: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    from friday.llm.vision import attachment_memory_note
+
+    note = attachment_memory_note(attachments)
+    user_for_memory = f"{text}\n{note}".strip() if note else text
+    session.memory.add_user(user_for_memory)
+    session.memory.add_assistant(reply.text)
+    if reply.skill_metadata:
+        session.memory.update_from_skill_metadata(reply.skill_metadata)
+
+    meta = dict(reply.skill_metadata or {})
+    if reply.grounding:
+        meta["grounding"] = reply.grounding
+    if reply.confidence:
+        meta["confidence"] = reply.confidence
+    skill_hint = meta.get("kind")
+    activity = build_activity(
+        {
+            "news": "get_world_news",
+            "finance": "get_world_finance_news",
+            "briefing": "get_country_briefing",
+            "monitor": "open_world_monitor",
+            "document": "search_docs",
+            "calculate": "calculate",
+            "research": "research_web",
+            "vision": "vision",
+        }.get(str(skill_hint))
+        if skill_hint
+        else None,
+        meta,
+    )
+    ui = extract_ui_payload(reply.text, meta)
+    store._save(session)
+
+    pending = None
+    return {
+        "reply": reply.text,
+        "metadata": meta,
+        "activity": activity,
+        "ui": ui,
+        "session": {
+            "last_country": session.memory.last_country,
+            "last_news_context": session.memory.last_news_context,
+            "last_language": session.memory.last_language,
+        },
+        "pending_confirmation": pending,
+        "tool_rounds": reply.tool_rounds,
+        "grounding": reply.grounding,
+        "confidence": reply.confidence or meta.get("confidence"),
+        "prompt_version": getattr(reply, "prompt_version", None) or PROMPT_VERSION,
     }
 
 
@@ -167,7 +289,6 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
     await session.emit("activity", {"label": "A interpretar o pedido…", "status": "running"})
 
     registry = default_registry(settings)
-    # Disable auto browser open in API context — UI opens monitors
     for name in ("get_world_news", "get_world_finance_news", "get_country_briefing"):
         try:
             skill = registry.get(name)
@@ -181,10 +302,10 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
         registry,
         session=session.memory,
         state_emit=lambda state: session.emit("state", {"state": state}),
+        address_override=_address_from_prefs(),
     )
     await session.emit("activity", {"label": "A processar…", "status": "running"})
 
-    # Detect pending confirmation flow
     if session.gate.pending is not None:
         status, action = session.gate.interpret(text)
         if status == "confirmed" and action:
@@ -192,6 +313,7 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
             msg = f"Confirmado: {action.summary}."
             session.memory.add_user(text)
             session.memory.add_assistant(msg)
+            store._save(session)
             return {
                 "reply": msg,
                 "metadata": {"kind": "confirmation", "decision": "confirmed"},
@@ -204,6 +326,7 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
             msg = f"Cancelado: {action.summary}."
             session.memory.add_user(text)
             session.memory.add_assistant(msg)
+            store._save(session)
             return {
                 "reply": msg,
                 "metadata": {"kind": "confirmation", "decision": "denied"},
@@ -229,8 +352,12 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
             }
 
     try:
+        attachments = session.take_attachments()
         reply = await runner.chat_with_tools(
-            text, session.memory.messages, session=session.memory
+            text,
+            session.memory.history_for_llm(),
+            session=session.memory,
+            attachments=attachments or None,
         )
     except Exception as exc:
         await session.emit("error", {"message": str(exc)})
@@ -244,32 +371,11 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
             "error": str(exc),
         }
 
-    session.memory.add_user(text)
-    session.memory.add_assistant(reply.text)
-    if reply.skill_metadata:
-        session.memory.update_from_skill_metadata(reply.skill_metadata)
+    result = _finalize_chat(session, text, reply, attachments=attachments)
 
-    meta = reply.skill_metadata or {}
-    skill_hint = meta.get("kind")
-    activity = build_activity(
-        {
-            "news": "get_world_news",
-            "finance": "get_world_finance_news",
-            "briefing": "get_country_briefing",
-            "monitor": "open_world_monitor",
-            "document": "search_docs",
-        }.get(str(skill_hint))
-        if skill_hint
-        else None,
-        meta,
-    )
-    ui = extract_ui_payload(reply.text, meta)
-
-    # Optional: if reply asks for confirmation patterns from ConfirmationGate policy
-    pending = None
     if session.gate.pending:
         p = session.gate.pending
-        pending = {
+        result["pending_confirmation"] = {
             "action": p.action,
             "target": p.target,
             "summary": p.summary,
@@ -279,22 +385,87 @@ async def run_chat(session: Session, text: str, settings: Settings | None = None
     else:
         await session.emit("state", {"state": "idle"})
 
-    await session.emit("activity", {"steps": activity})
+    await session.emit("activity", {"steps": result["activity"]})
     await session.emit("done", {"reply_preview": reply.text[:120]})
+    return result
 
-    return {
-        "reply": reply.text,
-        "metadata": meta,
-        "activity": activity,
-        "ui": ui,
-        "session": {
-            "last_country": session.memory.last_country,
-            "last_news_context": session.memory.last_news_context,
-            "last_language": session.memory.last_language,
-        },
-        "pending_confirmation": pending,
-        "tool_rounds": reply.tool_rounds,
-    }
+
+def _address_from_prefs() -> str | None:
+    try:
+        from friday.memory.prefs_store import PrefsStore
+
+        prefs = PrefsStore(get_settings().prefs_dir).get("default")
+        addr = prefs.get("user_address")
+        if addr and str(addr).strip():
+            return str(addr).strip()
+    except Exception:
+        pass
+    return None
+
+
+async def run_chat_stream(
+    session: Session, text: str, settings: Settings | None = None
+) -> AsyncIterator[str]:
+    """SSE generator with true token streaming when possible."""
+    settings = settings or get_settings()
+    await session.emit("state", {"state": "thinking"})
+
+    registry = default_registry(settings)
+    for name in ("get_world_news", "get_world_finance_news", "get_country_briefing"):
+        try:
+            skill = registry.get(name)
+            if hasattr(skill, "_auto_open"):
+                skill._auto_open = False  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    async def _state(state: str) -> None:
+        await session.emit("state", {"state": state})
+
+    async def _token(tok: str) -> None:
+        await session.emit("token", {"text": tok})
+
+    runner = ToolRunner(
+        settings,
+        registry,
+        session=session.memory,
+        state_emit=_state,
+        token_emit=_token,
+        address_override=_address_from_prefs(),
+    )
+
+    reply = None
+    attachments = session.take_attachments()
+    try:
+        async for kind, payload in runner.stream_chat(
+            text,
+            session.memory.history_for_llm(),
+            session=session.memory,
+            attachments=attachments or None,
+        ):
+            if kind == "token":
+                yield f"event: token\ndata: {json.dumps({'text': payload}, ensure_ascii=False)}\n\n"
+            elif kind == "done":
+                reply = payload
+    except Exception as exc:
+        await session.emit("error", {"message": str(exc)})
+        await session.emit("state", {"state": "error"})
+        err = {
+            "reply": "Nao consegui completar o pedido. Verifica o LM Studio e tenta novamente.",
+            "error": str(exc),
+        }
+        yield f"event: error\ndata: {json.dumps(err, ensure_ascii=False)}\n\n"
+        return
+
+    if reply is None:
+        yield f"event: error\ndata: {json.dumps({'error': 'empty reply'}, ensure_ascii=False)}\n\n"
+        return
+
+    result = _finalize_chat(session, text, reply, attachments=attachments)
+    await session.emit("state", {"state": "idle"})
+    await session.emit("activity", {"steps": result["activity"]})
+    await session.emit("done", result)
+    yield f"event: done\ndata: {json.dumps(result, ensure_ascii=False)}\n\n"
 
 
 async def event_stream(session: Session) -> AsyncIterator[str]:

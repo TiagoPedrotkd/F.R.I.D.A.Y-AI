@@ -1,0 +1,42 @@
+﻿{
+    "at":  "2026-09-02T22:50:07.9411473Z",
+    "checks":  {
+                   "pytest_fase1":  {
+                                        "detail":  "exit=0",
+                                        "ok":  true
+                                    },
+                   "mcp_import":  {
+                                      "detail":  "",
+                                      "ok":  true
+                                  },
+                   "mcp_json":  {
+                                    "detail":  "D:\\Repositories\\F.R.I.D.A.Y-AI\\.cursor\\mcp.json",
+                                    "ok":  true
+                                },
+                   "piper_voice":  {
+                                       "detail":  "models/piper/en_GB-cori-high.onnx",
+                                       "ok":  true
+                                   },
+                   "web_package":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "live_lm_studio":  {
+                                          "detail":  "localhost:1234 (opcional offline)",
+                                          "ok":  false
+                                      },
+                   "live_agent_api":  {
+                                          "detail":  "localhost:8090 (opcional offline)",
+                                          "ok":  false
+                                      },
+                   "live_ready":  {
+                                      "detail":  "/health/ready (opcional offline)",
+                                      "ok":  false
+                                  },
+                   "live_web_ui":  {
+                                       "detail":  "localhost:5173 (opcional offline)",
+                                       "ok":  false
+                                   }
+               },
+    "passed":  true
+}

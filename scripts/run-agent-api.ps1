@@ -18,5 +18,6 @@ if (Test-Path $venvPython) {
 
 Write-Host "Starting agent-api on http://$($env:AGENT_API_HOST):$($env:AGENT_API_PORT)"
 Write-Host "Python: $python"
-Set-Location (Join-Path $root "services\agent-api")
-& $python -m uvicorn main:app --host $env:AGENT_API_HOST --port $env:AGENT_API_PORT
+# Keep repo root as CWD so relative .env paths (RAG_INDEX_DIR, sessions, etc.) resolve
+Set-Location $root
+& $python -m uvicorn main:app --app-dir (Join-Path $root "services\agent-api") --host $env:AGENT_API_HOST --port $env:AGENT_API_PORT

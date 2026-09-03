@@ -1,0 +1,42 @@
+﻿{
+    "at":  "2026-09-03T23:00:55.4915262Z",
+    "checks":  {
+                   "docs_readme":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "docs_caldav":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "docs_email":  {
+                                      "detail":  "",
+                                      "ok":  true
+                                  },
+                   "docs_tauri":  {
+                                      "detail":  "",
+                                      "ok":  true
+                                  },
+                   "desktop_scaffold":  {
+                                            "detail":  "",
+                                            "ok":  true
+                                        },
+                   "compose_radicale":  {
+                                            "detail":  "",
+                                            "ok":  true
+                                        },
+                   "pytest_fase2":  {
+                                        "detail":  "exit=0",
+                                        "ok":  true
+                                    },
+                   "skills_registered":  {
+                                             "detail":  "",
+                                             "ok":  true
+                                         },
+                   "live_radicale":  {
+                                         "detail":  "localhost:5232",
+                                         "ok":  true
+                                     }
+               },
+    "passed":  true
+}

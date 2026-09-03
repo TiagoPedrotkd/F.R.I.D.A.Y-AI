@@ -36,9 +36,24 @@ Write-Host "=== Fase 1 acceptance ===" -ForegroundColor Cyan
 & $py -m pytest tests/test_agent_api.py tests/test_conversacao_skills.py tests/test_intent_router.py tests/test_tool_runner.py tests/test_roadmap_features.py -q --tb=line
 Set-Check "pytest_fase1" ($LASTEXITCODE -eq 0) "exit=$LASTEXITCODE"
 
-# MCP import
+# MCP import + tool call (Cursor UI toggle still local, but server is verified)
 & $py -c "from friday.mcp_server import server; print('ok')"
 Set-Check "mcp_import" ($LASTEXITCODE -eq 0) ""
+
+$mcpToolOut = & $py -c @"
+import asyncio
+from friday.mcp_server.server import create_mcp_server
+async def main():
+    m = create_mcp_server()
+    tools = await m.list_tools()
+    names = sorted(t.name for t in tools)
+    assert 'get_current_datetime' in names, names
+    r = await m.call_tool('get_current_datetime', {'timezone': 'Europe/Lisbon'})
+    assert not getattr(r, 'is_error', False), r
+    print('ok', ','.join(names))
+asyncio.run(main())
+"@
+Set-Check "mcp_tool_call" ($LASTEXITCODE -eq 0) ("$mcpToolOut".Trim())
 
 # MCP cursor config
 $mcp = Join-Path $Root ".cursor\mcp.json"
@@ -70,7 +85,7 @@ $web = Test-Url "http://127.0.0.1:5173/"
 $ready = $false
 if ($api) {
     try {
-        $j = Invoke-RestMethod -Uri "http://127.0.0.1:8090/health/ready" -TimeoutSec 5
+        $j = Invoke-RestMethod -Uri "http://127.0.0.1:8090/health/ready" -TimeoutSec 15
         $ready = [bool]$j.ready
     } catch { $ready = $false }
 }

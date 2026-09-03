@@ -208,6 +208,84 @@ _JOKE_PATTERNS = (
     r"\bfaz[- ]?me rir\b",
 )
 
+_CALENDAR_LIST_PATTERNS = (
+    r"\bagenda\b",
+    r"\bcalendario\b",
+    r"\bcalendar\b",
+    r"\breunio(es|ao)\b",
+    r"\bcompromissos?\b",
+    r"\bo que tenho (na |no )?(agenda|calendario|dia)\b",
+    r"\bproximos? eventos?\b",
+)
+
+_CALENDAR_CREATE_PATTERNS = (
+    r"\bmarca(r)? (uma )?(reuniao|evento|compromisso)\b",
+    r"\bcria(r)? (um |uma )?(evento|reuniao)\b",
+    r"\bagenda(r)? (uma )?(reuniao|evento)\b",
+    r"\bschedule\b",
+    r"\bcreate (an? )?event\b",
+)
+
+_CALENDAR_CANCEL_PATTERNS = (
+    r"\bcancela(r)? (a |o |uma |um )?(reuniao|evento|meeting|compromisso)\b",
+    r"\bapaga(r)? (a |o )?(reuniao|evento)\b",
+    r"\bdelete (the )?(event|meeting)\b",
+    r"\bcancel (the )?(event|meeting)\b",
+)
+
+_FIND_TIME_PATTERNS = (
+    r"\bquando (posso|podemos|consigo)\b",
+    r"\bhorarios? livres?\b",
+    r"\bslots? livres?\b",
+    r"\bfind (a )?time\b",
+    r"\bfree slots?\b",
+    r"\bquando posso falar\b",
+)
+
+_SUMMARIZE_DAY_PATTERNS = (
+    r"\b(como|qual) (esta|e) (o )?meu dia\b",
+    r"\bresumo (do|de) (meu )?dia\b",
+    r"\bsummarize (my )?day\b",
+    r"\bmeu dia hoje\b",
+    r"\bo que tenho hoje\b",
+)
+
+_STATUS_CHECK_PATTERNS = (
+    r"\bemails? importantes?\b",
+    r"\bstatus\b",
+    r"\bha algo urgente\b",
+    r"\bprioridade\b",
+    r"\bunread\b",
+    r"\bnao lidos?\b",
+)
+
+_EMAIL_LIST_PATTERNS = (
+    r"\bemails?\b",
+    r"\bcorreio\b",
+    r"\binbox\b",
+    r"\bcaixa de entrada\b",
+    r"\bmensagens? (novas|recentes)\b",
+)
+
+_EMAIL_SEND_PATTERNS = (
+    r"\benvia(r)? (um )?email\b",
+    r"\bmanda(r)? (um )?email\b",
+    r"\bsend (an? )?email\b",
+)
+
+_WORKFLOW_PATTERNS = (
+    r"\b(e )?envia(r)? (o )?convite\b",
+    r"\bmarca.*(e|depois).*email\b",
+    r"\bschedule.*invite\b",
+    r"\bmeeting workflow\b",
+)
+
+_PREPARE_MEETING_PATTERNS = (
+    r"\bprepara(r)? (a |o )?(reuniao|meeting|call)\b",
+    r"\bprepare (the )?(meeting|call)\b",
+    r"\bbrief(ing)? (da |de |para )?(reuniao|meeting)\b",
+)
+
 _REMEMBER_PATTERNS = (
     r"\bguarda (esta |isso |a )?conclus",
     r"\bguarda (isto|isso|esta ideia)\b",
@@ -239,6 +317,131 @@ _TZ_FROM_TEXT = (
     (r"\blondres\b|\blondon\b", "Europe/London"),
     (r"\bnova iorque\b|\bnew york\b", "America/New_York"),
 )
+
+
+def _extract_clock_time(norm: str) -> tuple[int, int] | None:
+    m = re.search(r"\b(\d{1,2})\s*[:h]\s*(\d{2})\b", norm)
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    m = re.search(r"\b(\d{1,2})\s*h\b", norm)
+    if m:
+        return int(m.group(1)), 0
+    m = re.search(r"\bas\s+(\d{1,2})\b", norm)
+    if m:
+        hour = int(m.group(1))
+        if 0 <= hour <= 23:
+            return hour, 0
+    return None
+
+
+def _extract_relative_start(norm: str) -> str | None:
+    """Best-effort ISO local start from 'amanha as 15h' / 'hoje as 10:30'."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    clock = _extract_clock_time(norm)
+    if not clock:
+        return None
+    hour, minute = clock
+    if hour > 23 or minute > 59:
+        return None
+    try:
+        tz = ZoneInfo("Europe/Lisbon")
+    except Exception:
+        tz = None
+    now = datetime.now(tz) if tz else datetime.now()
+    day = now.date()
+    if re.search(r"\bamanha\b", norm):
+        day = (now + timedelta(days=1)).date()
+    elif re.search(r"\bdepois de amanha\b", norm):
+        day = (now + timedelta(days=2)).date()
+    elif not re.search(r"\bhoje\b", norm) and not re.search(r"\bamanha\b", norm):
+        # default: if only clock, assume today if future else tomorrow
+        candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if candidate <= now:
+            day = (now + timedelta(days=1)).date()
+    return f"{day.isoformat()}T{hour:02d}:{minute:02d}:00"
+
+
+def _extract_event_title(raw: str, norm: str) -> str:
+    m = re.search(
+        r"(?:chamad[ao]|titul[oa]|nome|called|titled)\s+(.+)$",
+        raw,
+        flags=re.IGNORECASE,
+    )
+    if m:
+        return m.group(1).strip(" .\"'")
+    m = re.search(
+        r"(?:reuniao|evento|compromisso|meeting)\s+(?:com\s+)?(.+?)(?:\s+amanha|\s+hoje|\s+as\s+\d|\s*$)",
+        norm,
+    )
+    if m:
+        title = m.group(1).strip(" .\"'")
+        title = re.sub(
+            r"^(uma|um|a|o|the|an?)\s+",
+            "",
+            title,
+        )
+        if title and title not in {"reuniao", "evento", "meeting", "compromisso"}:
+            return title.title() if title.islower() else title
+    return "Reuniao"
+
+
+def _extract_cancel_hint(raw: str, norm: str) -> str:
+    m = re.search(r"\buid[\s:=-]*([a-z0-9_.@+-]+)", norm)
+    if m:
+        return m.group(1)
+    for marker in (
+        "cancela a reuniao ",
+        "cancelar a reuniao ",
+        "cancela o evento ",
+        "cancelar o evento ",
+        "cancela a meeting ",
+        "apaga a reuniao ",
+        "delete the meeting ",
+        "cancel the meeting ",
+        "cancel the event ",
+    ):
+        idx = raw.casefold().find(marker)
+        if idx >= 0:
+            return raw[idx + len(marker) :].strip(" .\"'")
+    return _extract_event_title(raw, norm)
+
+
+def _match_calendar_mutate(raw: str, norm: str) -> tuple[str, dict] | None:
+    if _any_pattern(norm, _PREPARE_MEETING_PATTERNS):
+        q = _extract_quoted_or_after(
+            raw,
+            (
+                "prepara a reuniao ",
+                "preparar a reuniao ",
+                "prepara o meeting ",
+                "prepare the meeting ",
+                "prepara a call ",
+                "briefing da reuniao ",
+            ),
+        )
+        if not q or q.casefold() in {"prepara a reuniao", "preparar a reuniao"}:
+            q = "reuniao"
+        return "prepare_meeting", {"query": q}
+
+    if _any_pattern(norm, _CALENDAR_CANCEL_PATTERNS):
+        hint = _extract_cancel_hint(raw, norm)
+        args: dict = {"title_hint": hint}
+        if re.fullmatch(r"[a-z0-9_.@+-]{6,}", hint.casefold()):
+            args["uid"] = hint
+        return "cancel_calendar_event", args
+
+    if _any_pattern(norm, _CALENDAR_CREATE_PATTERNS) and not _any_pattern(
+        norm, _WORKFLOW_PATTERNS
+    ):
+        start = _extract_relative_start(norm)
+        if not start:
+            return None
+        title = _extract_event_title(raw, norm)
+        return "create_calendar_event", {"title": title, "start": start}
+
+    return None
 
 
 def _match_datetime(norm: str) -> tuple[str, dict] | None:
@@ -435,6 +638,27 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
         return "recall", {"query": raw}
     if _any_pattern(norm, _JOKE_PATTERNS):
         return "tell_joke", {}
+
+    if _any_pattern(norm, _SUMMARIZE_DAY_PATTERNS):
+        return "summarize_day", {}
+    if _any_pattern(norm, _STATUS_CHECK_PATTERNS):
+        return "status_check", {}
+    if _any_pattern(norm, _FIND_TIME_PATTERNS):
+        return "find_free_slots", {"duration_min": 30}
+
+    hit = _match_calendar_mutate(raw, norm)
+    if hit:
+        return hit
+
+    # Create/send/cancel/workflow need structured args from the LLM — only list routes here.
+    if _any_pattern(norm, _CALENDAR_LIST_PATTERNS) and not _any_pattern(
+        norm, _CALENDAR_CREATE_PATTERNS
+    ) and not _any_pattern(norm, _CALENDAR_CANCEL_PATTERNS):
+        return "list_calendar_events", {"days": 7}
+    if _any_pattern(norm, _EMAIL_LIST_PATTERNS) and not _any_pattern(
+        norm, _EMAIL_SEND_PATTERNS
+    ) and not _any_pattern(norm, _STATUS_CHECK_PATTERNS):
+        return "list_emails", {"limit": 10}
 
     return _match_fetch(raw, norm, url)
 

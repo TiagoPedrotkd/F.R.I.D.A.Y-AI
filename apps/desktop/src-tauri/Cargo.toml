@@ -1,0 +1,24 @@
+[package]
+name = "friday-desktop"
+version = "0.2.0"
+description = "F.R.I.D.A.Y. desktop shell"
+authors = ["F.R.I.D.A.Y."]
+edition = "2021"
+
+[lib]
+name = "friday_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true

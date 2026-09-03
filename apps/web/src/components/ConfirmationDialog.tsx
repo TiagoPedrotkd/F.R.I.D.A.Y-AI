@@ -1,6 +1,36 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '../state/store'
 
+function PreviewBlock({ preview }: { preview?: Record<string, unknown> }) {
+  if (!preview || Object.keys(preview).length === 0) return null
+  const to = preview.to != null ? String(preview.to) : ''
+  const subject = preview.subject != null ? String(preview.subject) : ''
+  const body = preview.body != null ? String(preview.body) : ''
+  const title = preview.title != null ? String(preview.title) : ''
+  const start = preview.start != null ? String(preview.start) : ''
+  const end = preview.end != null ? String(preview.end) : ''
+  return (
+    <div className="mt-3 space-y-1 rounded border border-amber/30 bg-black/30 p-3 text-xs text-[var(--text-primary)]">
+      <p className="hud-label" style={{ color: 'var(--color-amber)' }}>
+        Preview
+      </p>
+      {to ? <p>Para: {to}</p> : null}
+      {subject ? <p>Assunto: {subject}</p> : null}
+      {body ? <p className="whitespace-pre-wrap opacity-90">{body.slice(0, 400)}</p> : null}
+      {title ? (
+        <p>
+          Evento: {title}
+          {start ? ` · ${start}` : ''}
+          {end ? ` → ${end}` : ''}
+        </p>
+      ) : null}
+      {Array.isArray(preview.overlaps) && preview.overlaps.length > 0 ? (
+        <p style={{ color: 'var(--color-amber)' }}>Conflitos detectados no calendario.</p>
+      ) : null}
+    </div>
+  )
+}
+
 export function ConfirmationDialog() {
   const pending = useAppStore((s) => s.pending)
   const resolveConfirm = useAppStore((s) => s.resolveConfirm)
@@ -51,6 +81,7 @@ export function ConfirmationDialog() {
             </>
           ) : null}
         </p>
+        <PreviewBlock preview={pending.preview} />
         <p className="mt-2 text-xs text-[var(--text-muted)]">
           Enter não confirma esta acção. Usa os botões ou Escape para cancelar.
         </p>

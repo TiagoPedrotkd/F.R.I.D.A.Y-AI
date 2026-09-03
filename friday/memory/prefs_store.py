@@ -19,6 +19,7 @@ _DEFAULTS: dict[str, Any] = {
     "reduced_motion": False,
     "user_address": None,
     "theme": "dark",
+    "productivity_patterns": None,
 }
 
 
@@ -38,7 +39,13 @@ class PrefsStore:
             try:
                 loaded = json.loads(path.read_text(encoding="utf-8"))
                 if isinstance(loaded, dict):
-                    data.update({k: v for k, v in loaded.items() if k in _DEFAULTS or k == "updated_at"})
+                    data.update(
+                        {
+                            k: v
+                            for k, v in loaded.items()
+                            if k in _DEFAULTS or k == "updated_at"
+                        }
+                    )
             except (OSError, json.JSONDecodeError):
                 pass
         return data

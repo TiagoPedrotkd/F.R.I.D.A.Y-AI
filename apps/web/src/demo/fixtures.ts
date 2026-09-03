@@ -11,6 +11,9 @@ export type Prefs = {
   highContrast: boolean
   reducedMotion: boolean
   demoMode: boolean
+  workingHours: string
+  preferredMeetingDuration: number
+  doNotDisturb: string
 }
 
 export const defaultPrefs: Prefs = {
@@ -26,6 +29,9 @@ export const defaultPrefs: Prefs = {
   highContrast: false,
   reducedMotion: false,
   demoMode: false,
+  workingHours: '9:00-18:00',
+  preferredMeetingDuration: 30,
+  doNotDisturb: '22:00-8:00',
 }
 
 export const DEMO_FIXTURES = {

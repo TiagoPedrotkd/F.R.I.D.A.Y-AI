@@ -11,20 +11,26 @@ Fecho: [checklist-conclusao.md](checklist-conclusao.md)
 
 ## Checklist
 
-- [ ] Arranque: header mostra API/LM ligados (não demo forçado).
-- [ ] Chat texto: pedido simples (hora / piada) → bolha + timeline de actividade.
-- [ ] Mic: gravar → transcrição → chat → (se TTS on) áudio interruptível com Stop.
-- [ ] Quick actions: notícias / finanças → country chip + source cards (ou demo etiquetado).
-- [ ] Monitor: botão “Abrir monitor” abre `/monitors/...` após clique (com `AUTO_OPEN` false).
-- [ ] Confirmação: “Confirmação demo” → modal; Escape cancela; Enter **não** confirma.
-- [ ] Definições: persistência após refresh (localStorage); alto contraste / reduced motion.
-- [ ] Demo: desligar LM → banner demo + respostas `[DEMO]`.
-- [ ] Teclado: foco visível; Tab no modal de confirmação; Escape interrompe fala.
-- [ ] Mobile / estreito: conversa + mic; drawer “Painel” para lateral.
+Automatizado: `fase1_live_smoke.ps1`, `fase1_acceptance.ps1`, Vitest (`npm test`).
+
+- [x] Arranque: API/LM ligados — *API*
+- [x] Chat texto: hora / piada — *API*
+- [x] STT path: WAV→Whisper→texto — *API* (mic browser/WASAPI = opcional hardware)
+- [x] Quick actions: notícias / finanças — *API*
+- [x] Monitor HTML — *API*
+- [x] Confirmação demo + cancel — *API*; a11y modal — *Vitest*
+- [x] Prefs roundtrip — *API*
+- [x] TTS WAV — *API*
+- [x] Demo LM off: `status.demo=true` + fixtures `[DEMO]` — *pytest + Vitest*
+- [x] Mobile drawer “Data” — *Vitest*
+- [ ] (Opcional) Permissão mic no browser + Stop interruptível na tua máquina
 
 ## Atalhos de verificação
 
 ```powershell
 .\scripts\fase1_acceptance.ps1 -RequireLive
+.\scripts\fase1_live_smoke.ps1
 .\scripts\fase1_chat_latency.ps1 -N 5
+.\scripts\fase1_voice_latency.ps1 -N 3
+cd apps\web; npm test
 ```

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 
 def _normalize(text: str) -> str:
@@ -23,18 +24,44 @@ _DENY = re.compile(
 )
 
 
+# Skills that must not mutate until ConfirmationGate confirms.
+GATED_SKILLS = frozenset(
+    {
+        "create_calendar_event",
+        "cancel_calendar_event",
+        "modify_calendar_event",
+        "send_email",
+        "draft_email_reply",
+        "schedule_local_reminder",
+    }
+)
+
+
 @dataclass
 class PendingAction:
     action: str
     target: str
     summary: str
     consequences: str = ""
+    payload: dict[str, Any] = field(default_factory=dict)
+    preview: dict[str, Any] = field(default_factory=dict)
 
     def prompt_message(self) -> str:
         parts = [
             f"Antes de continuar: vou {self.summary}.",
             f"Alvo: {self.target}.",
         ]
+        if self.preview:
+            if self.preview.get("subject"):
+                parts.append(f"Assunto: {self.preview['subject']}.")
+            if self.preview.get("body"):
+                body = str(self.preview["body"])
+                parts.append(f"Corpo: {body[:200]}{'…' if len(body) > 200 else ''}.")
+            if self.preview.get("title"):
+                parts.append(
+                    f"Evento: {self.preview.get('title')} "
+                    f"{self.preview.get('start') or ''}."
+                )
         if self.consequences:
             parts.append(f"Consequencias: {self.consequences}.")
         parts.append("Confirmas? Diz sim ou nao.")
@@ -85,18 +112,18 @@ class ConfirmationGate:
         return "waiting", self._pending
 
 
-# Policy for future skills (email, files, calendar, shell, purchases):
+# Policy for privileged skills (email, files, calendar, shell, purchases):
 CONFIRMATION_POLICY = """
 A FRIDAY pede confirmacao explicita antes de:
-- Enviar emails ou mensagens
+- Enviar emails ou mensagens (send_email / draft_email_reply)
+- Criar, alterar ou cancelar eventos de calendario
 - Apagar ou substituir ficheiros
-- Cancelar ou alterar eventos de calendario
 - Executar comandos potencialmente perigosos
 - Fazer compras ou pagamentos
 - Partilhar informacao ou documentos
 - Qualquer accao irreversivel
 
-A confirmacao deve incluir a accao exacta, o alvo, dados principais e
+A confirmacao deve incluir a accao exacta, o alvo, preview (assunto/corpo ou titulo/hora) e
 consequencias relevantes. Uma resposta afirmativa antiga nao autoriza
 uma accao nova — usa ConfirmationGate.request / interpret.
 """

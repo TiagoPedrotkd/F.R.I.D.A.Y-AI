@@ -102,6 +102,44 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </label>
         </div>
       </div>
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+          Agenda e padrões
+        </h3>
+        <div className="flex flex-col gap-3 text-sm">
+          <label className="flex flex-col gap-1">
+            <span className="text-[var(--text-muted)]">Horário de trabalho</span>
+            <input
+              className="rounded border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5"
+              value={prefs.workingHours}
+              placeholder="9:00-18:00"
+              onChange={(e) => setPrefs({ workingHours: e.target.value })}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[var(--text-muted)]">Duração preferida de reunião (min)</span>
+            <input
+              type="number"
+              min={15}
+              max={180}
+              step={15}
+              className="rounded border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5"
+              value={prefs.preferredMeetingDuration}
+              onChange={(e) => setPrefs({ preferredMeetingDuration: Number(e.target.value) })}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[var(--text-muted)]">Não incomodar</span>
+            <input
+              className="rounded border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5"
+              value={prefs.doNotDisturb}
+              placeholder="22:00-8:00"
+              onChange={(e) => setPrefs({ doNotDisturb: e.target.value })}
+            />
+          </label>
+        </div>
+      </div>
     </div>
   )
 }

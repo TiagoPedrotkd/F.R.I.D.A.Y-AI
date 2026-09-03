@@ -1,0 +1,13 @@
+{
+  "n": 3,
+  "at": "2026-09-03T21:54:49.2868034Z",
+  "p50_ms": 4136,
+  "samples": [
+    4136.0,
+    2224.0,
+    6484.0
+  ],
+  "path": "agent-api chat+tts (text-equivalent voice path)",
+  "p95_ms": 6484,
+  "log": "D:\\Repositories\\F.R.I.D.A.Y-AI\\docs\\fase-1\\voice-latency-last.log"
+}

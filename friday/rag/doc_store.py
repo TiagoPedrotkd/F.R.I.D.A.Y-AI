@@ -65,6 +65,46 @@ def index_fingerprint(index_dir: Path, corpus_path: Path) -> str:
     return "|".join(parts)
 
 
+def probe_rag_index(settings: Settings | None = None) -> dict:
+    """Fast readiness probe — filesystem only, never loads embedding weights."""
+    settings = settings or get_settings()
+    if not settings.rag_enabled:
+        return {"ok": True, "backend": "off", "mode": "disabled"}
+
+    backend = (settings.rag_backend or "embedding").casefold()
+    index_dir = Path(settings.rag_index_dir)
+    corpus = Path(settings.rag_corpus_path)
+
+    # Prefer already-warmed singleton without forcing a cold load.
+    if _shared is not None:
+        warm_ok = bool(_shared.available) or _shared.backend == "keyword"
+        return {
+            "ok": warm_ok,
+            "backend": _shared.backend,
+            "mode": "warm",
+            "index_dir": str(index_dir),
+        }
+
+    if backend == "embedding":
+        chroma = index_dir / "chroma"
+        meta = index_dir / "index_meta.json"
+        ok = chroma.is_dir() and (meta.is_file() or any(chroma.glob("*")))
+        return {
+            "ok": ok,
+            "backend": "embedding",
+            "mode": "index_present" if ok else "index_missing",
+            "index_dir": str(index_dir),
+        }
+
+    ok = corpus.is_file()
+    return {
+        "ok": ok,
+        "backend": "keyword",
+        "mode": "corpus" if ok else "corpus_missing",
+        "corpus": str(corpus),
+    }
+
+
 def _build_store(settings: Settings) -> DocRagStore:
     corpus = str(settings.rag_corpus_path)
     if not settings.rag_enabled:

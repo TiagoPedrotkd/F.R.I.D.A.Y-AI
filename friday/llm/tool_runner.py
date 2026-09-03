@@ -370,6 +370,18 @@ class ToolRunner:
                 "content": JSON_FALLBACK_INSTRUCTION,
             },
         ]
+        try:
+            from friday.productivity.context import (
+                build_productivity_context,
+                format_context_block,
+            )
+
+            ctx = build_productivity_context(self._settings)
+            messages.append(
+                {"role": "system", "content": format_context_block(ctx)}
+            )
+        except Exception as exc:
+            logger.debug("productivity context skipped: %s", exc)
         if self._settings.web_source_required and needs_web_grounding(user_text):
             messages.append(
                 {"role": "system", "content": SOURCE_REQUIRED_INSTRUCTION}

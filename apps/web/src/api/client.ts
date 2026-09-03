@@ -21,7 +21,16 @@ export type PendingConfirmation = {
   target: string
   summary: string
   consequences?: string
+  preview?: Record<string, unknown>
 }
+
+export type FridayAlert = {
+  severity: string
+  kind: string
+  message: string
+  cta?: string
+}
+
 
 export type ChatResponse = {
   reply: string
@@ -264,6 +273,10 @@ export async function seedDemoConfirmation(sessionId: string): Promise<{
   return json(await fetch(url, { method: 'POST', signal: withTimeout(10000) }))
 }
 
+export async function fetchAlerts(): Promise<{ alerts: FridayAlert[]; context_time?: string }> {
+  return json(await fetch(apiUrl('/v1/alerts'), { signal: withTimeout(20000) }))
+}
+
 export async function stt(blob: Blob, sessionId?: string, language = 'pt'): Promise<{ text: string }> {
   const form = new FormData()
   form.append('audio', blob, 'speech.wav')
@@ -307,7 +320,17 @@ export function subscribeEvents(
   let retryMs = 1000
   let timer: ReturnType<typeof setTimeout> | null = null
 
-  const types = ['state', 'activity', 'partial_transcript', 'token', 'tool', 'error', 'done', 'ping']
+  const types = [
+    'state',
+    'activity',
+    'partial_transcript',
+    'token',
+    'tool',
+    'error',
+    'done',
+    'ping',
+    'alerts',
+  ]
 
   const attach = () => {
     if (closed) return

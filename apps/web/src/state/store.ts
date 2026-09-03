@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ActivityStep, PendingConfirmation, SourceItem } from '../api/client'
+import type { ActivityStep, FridayAlert, PendingConfirmation, SourceItem } from '../api/client'
 import * as api from '../api/client'
 import { DEMO_FIXTURES, defaultPrefs, type Prefs } from '../demo/fixtures'
 import { playWavBytes, startMicRecording, type MicRecorder } from '../platform/audio'
@@ -29,6 +29,7 @@ type AppStore = {
   country: string | null
   sources: SourceItem[]
   pending: PendingConfirmation | null
+  alerts: FridayAlert[]
   offerMonitorPath: string | null
   prefs: Prefs
   backendOk: boolean
@@ -46,6 +47,7 @@ type AppStore = {
   setPrefs: (p: Partial<Prefs>) => void
   setSettingsOpen: (v: boolean) => void
   setSidebarOpen: (v: boolean) => void
+  dismissAlert: (index: number) => void
   bootstrap: () => Promise<void>
   sendText: (text?: string) => Promise<void>
   toggleMic: () => Promise<void>
@@ -79,6 +81,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   country: null,
   sources: [],
   pending: null,
+  alerts: [],
   offerMonitorPath: null,
   prefs: { ...defaultPrefs, ...getJson<Partial<Prefs>>('prefs', {}) },
   backendOk: false,
@@ -112,11 +115,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
         auto_open_monitors: prefs.autoOpenMonitors,
         high_contrast: prefs.highContrast,
         reduced_motion: prefs.reducedMotion,
+        productivity_patterns: {
+          working_hours: prefs.workingHours,
+          preferred_meeting_duration: prefs.preferredMeetingDuration,
+          do_not_disturb: prefs.doNotDisturb,
+        },
       })
       .catch(() => undefined)
   },
   setSettingsOpen: (v) => set({ settingsOpen: v }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
+  dismissAlert: (index) =>
+    set({ alerts: get().alerts.filter((_, i) => i !== index) }),
 
   bootstrap: async () => {
     applyPrefsDom(get().prefs)
@@ -153,12 +163,34 @@ export const useAppStore = create<AppStore>((set, get) => ({
           reducedMotion:
             typeof rp.reduced_motion === 'boolean' ? rp.reduced_motion : prefs.reducedMotion,
         }
+        const pp = rp.productivity_patterns
+        if (pp && typeof pp === 'object') {
+          const patterns = pp as Record<string, unknown>
+          if (typeof patterns.working_hours === 'string') {
+            prefs.workingHours = patterns.working_hours
+          }
+          if (typeof patterns.preferred_meeting_duration === 'number') {
+            prefs.preferredMeetingDuration = patterns.preferred_meeting_duration
+          }
+          if (typeof patterns.do_not_disturb === 'string') {
+            prefs.doNotDisturb = patterns.do_not_disturb
+          }
+        }
         setJson('prefs', prefs)
         applyPrefsDom(prefs)
       } catch {
         /* local prefs remain */
       }
       const demoForced = status.demo || prefs.demoMode
+      let alerts: import('../api/client').FridayAlert[] = []
+      if (!demoForced) {
+        try {
+          const ar = await api.fetchAlerts()
+          alerts = ar.alerts || []
+        } catch {
+          /* optional */
+        }
+      }
       set({
         sessionId: session.id,
         backendOk: true,
@@ -166,12 +198,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
         demoForced,
         state: transition(get().state, 'idle'),
         prefs,
+        alerts,
       })
       api.subscribeEvents(session.id, (type, raw) => {
         const data = (raw as { data?: Record<string, unknown> })?.data ?? raw
         if (type === 'state' && data && typeof data === 'object' && 'state' in (data as object)) {
           const s = (data as { state: FridayState }).state
           if (s) get().setState(s)
+        }
+        if (type === 'alerts' && data && typeof data === 'object' && 'alerts' in (data as object)) {
+          const list = (data as { alerts: FridayAlert[] }).alerts
+          if (Array.isArray(list) && list.length) {
+            set({ alerts: list })
+          }
         }
       })
     } catch (e) {
@@ -437,10 +476,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
     try {
       const res = await api.confirm(sessionId, decision)
+      const nextPending =
+        (res as { pending_confirmation?: PendingConfirmation | null }).pending_confirmation ?? null
       set({
-        pending: null,
+        pending: nextPending,
         messages: [...get().messages, { id: uid(), role: 'assistant', text: res.reply }],
-        state: transition(get().state, 'idle'),
+        state: transition(
+          get().state,
+          nextPending ? 'awaiting_confirmation' : 'idle',
+        ),
       })
     } catch (e) {
       set({
@@ -591,6 +635,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
         if (type === 'state' && eventData && typeof eventData === 'object' && 'state' in (eventData as object)) {
           const s = (eventData as { state: FridayState }).state
           if (s) get().setState(s)
+        }
+        if (
+          type === 'alerts' &&
+          eventData &&
+          typeof eventData === 'object' &&
+          'alerts' in (eventData as object)
+        ) {
+          const list = (eventData as { alerts: FridayAlert[] }).alerts
+          if (Array.isArray(list) && list.length) {
+            set({ alerts: list })
+          }
         }
       })
     } catch (e) {

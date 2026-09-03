@@ -23,3 +23,18 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  # Fase 2 — CalDAV local (Radicale)
+  radicale:
+    image: tomsquest/docker-radicale:3.3.2.0
+    container_name: friday-radicale
+    ports:
+      - "${CALDAV_PORT:-5232}:5232"
+    volumes:
+      - radicale_data:/data
+    environment:
+      TAKE_FILE_OWNERSHIP: "true"
+    restart: unless-stopped
+
+volumes:
+  radicale_data:

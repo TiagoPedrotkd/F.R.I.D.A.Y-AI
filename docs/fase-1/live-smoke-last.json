@@ -1,0 +1,63 @@
+{
+  "base": "http://127.0.0.1:8090",
+  "at": "2026-09-03T21:54:31.7295379Z",
+  "checks": {
+    "status_backend": {
+      "detail": "demo=False llm=True",
+      "ok": true
+    },
+    "status_llm": {
+      "detail": "model=microsoft/phi-4",
+      "ok": true
+    },
+    "session_create": {
+      "detail": "d4dcd904c014433da1c6685aca0eb462",
+      "ok": true
+    },
+    "chat_time": {
+      "detail": "Sao 22:54 de 03/09/2026, quinta-feira (Europe/Lisbon).",
+      "ok": true
+    },
+    "chat_joke": {
+      "detail": "",
+      "ok": true
+    },
+    "chat_news": {
+      "detail": "sources=False kind=news",
+      "ok": true
+    },
+    "chat_finance": {
+      "detail": "kind=finance",
+      "ok": true
+    },
+    "monitor_html": {
+      "detail": "bytes=13461",
+      "ok": true
+    },
+    "confirm_demo": {
+      "detail": "summary=enviar um email de teste",
+      "ok": true
+    },
+    "confirm_cancel": {
+      "detail": "denied",
+      "ok": true
+    },
+    "prefs": {
+      "detail": "",
+      "ok": true
+    },
+    "tts_wav": {
+      "detail": "bytes=88620",
+      "ok": true
+    },
+    "stt_from_wav": {
+      "detail": "text=O Sena Sao Horis.",
+      "ok": true
+    },
+    "sessions_list": {
+      "detail": "n=40",
+      "ok": true
+    }
+  },
+  "failed": 0
+}

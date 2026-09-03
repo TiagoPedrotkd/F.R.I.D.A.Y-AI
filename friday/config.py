@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -13,6 +13,7 @@ class Settings(BaseSettings):
         env_file=str(_REPO_ROOT / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     # LLM (Bionic / LM Studio on host)
@@ -130,6 +131,26 @@ class Settings(BaseSettings):
     )
     rag_top_k: int = Field(default=3, alias="RAG_TOP_K")
 
+    # Fase 2 — CalDAV
+    caldav_enabled: bool = Field(default=True, alias="CALDAV_ENABLED")
+    caldav_url: str = Field(default="", alias="CALDAV_URL")
+    caldav_user: str = Field(default="friday", alias="CALDAV_USER")
+    caldav_password: str = Field(default="", alias="CALDAV_PASSWORD")
+
+    # Fase 2 — Email
+    email_enabled: bool = Field(default=False, alias="EMAIL_ENABLED")
+    imap_host: str = Field(default="", alias="IMAP_HOST")
+    imap_port: int = Field(default=993, alias="IMAP_PORT")
+    imap_user: str = Field(default="", alias="IMAP_USER")
+    imap_password: str = Field(default="", alias="IMAP_PASSWORD")
+    imap_folder: str = Field(default="INBOX", alias="IMAP_FOLDER")
+    smtp_host: str = Field(default="", alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_user: str = Field(default="", alias="SMTP_USER")
+    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
+    smtp_from: str = Field(default="", alias="SMTP_FROM")
+    email_use_ssl: bool = Field(default=True, alias="EMAIL_USE_SSL")
+
     # User-facing error messages (Portuguese)
     error_network_pt: str = Field(
         default="Nao consegui ligar ao modelo. Tenta outra vez.",
@@ -153,6 +174,29 @@ class Settings(BaseSettings):
     )
 
     models_dir: Path = Field(default=_REPO_ROOT / "models")
+
+    @model_validator(mode="after")
+    def _resolve_repo_relative_paths(self) -> "Settings":
+        """Make relative .env paths stable regardless of process CWD."""
+        path_fields = (
+            "sessions_dir",
+            "feedback_path",
+            "prefs_dir",
+            "rag_corpus_path",
+            "rag_index_dir",
+            "models_dir",
+        )
+        for name in path_fields:
+            value = getattr(self, name, None)
+            if not isinstance(value, Path):
+                continue
+            if not value.is_absolute():
+                object.__setattr__(self, name, (_REPO_ROOT / value).resolve())
+        # Piper voice may be a relative path string inside models/
+        voice = (self.piper_voice or "").strip()
+        if voice and not Path(voice).is_absolute():
+            object.__setattr__(self, "piper_voice", str((_REPO_ROOT / voice).resolve()))
+        return self
 
     @property
     def record_timeout(self) -> float:

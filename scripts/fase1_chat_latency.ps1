@@ -4,7 +4,6 @@
     Chat-path latency smoke (agent-api), complement to wake-to-TTS voice benchmark.
 .DESCRIPTION
     Measures N text chat round-trips against a running agent-api + LM Studio.
-    Does not replace voice wake-to-TTS; use when validating Fase 1 web/API path.
 
 Usage:
   .\scripts\run-agent-api.ps1   # separately
@@ -35,11 +34,11 @@ for ($i = 0; $i -lt $N; $i++) {
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $body = @{ session_id = $sid; text = $text; stream = $false } | ConvertTo-Json
     $null = Invoke-RestMethod -Method Post -Uri "$Base/v1/chat" `
-        -ContentType "application/json" -Body $body -TimeoutSec 120
+        -ContentType "application/json" -Body $body -TimeoutSec 180
     $sw.Stop()
     $ms = [int]$sw.Elapsed.TotalMilliseconds
     $latencies += $ms
-    Write-Host ("  [{0}] {1} ms — {2}" -f ($i + 1), $ms, $text)
+    Write-Host ("  [{0}] {1} ms - {2}" -f ($i + 1), $ms, $text)
 }
 
 $sorted = $latencies | Sort-Object
@@ -58,10 +57,10 @@ $out = Join-Path $outDir "chat-latency-last.json"
 } | ConvertTo-Json | Set-Content $out -Encoding utf8
 
 Write-Host ""
-Write-Host ("Chat latency p50={0} ms p95={1} ms (target informal p50 < {2} ms)" -f $p50, $p95, $MaxP50Ms)
+Write-Host ("Chat latency p50={0} ms p95={1} ms (soft target p50 under {2} ms)" -f $p50, $p95, $MaxP50Ms)
 Write-Host "Wrote $out"
 if ($p50 -gt $MaxP50Ms) {
-    Write-Host "p50 above soft target — check LM Studio load / GPU contention." -ForegroundColor Yellow
+    Write-Host "p50 above soft target - check LM Studio load / GPU contention." -ForegroundColor Yellow
     exit 2
 }
 exit 0

@@ -58,7 +58,26 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     settings = settings or get_settings()
 
     from friday.skills.local.calculate import CalculateSkill
+    from friday.skills.local.calendar_skills import (
+        CancelCalendarEventSkill,
+        CreateCalendarEventSkill,
+        FindFreeSlotsSkill,
+        ListCalendarEventsSkill,
+        ModifyCalendarEventSkill,
+        StatusCheckSkill,
+        SummarizeDaySkill,
+    )
     from friday.skills.local.datetime_skill import DateTimeSkill
+    from friday.skills.local.email_skills import (
+        DraftEmailReplySkill,
+        ListEmailsSkill,
+        PrepareMeetingSkill,
+        ReadEmailSkill,
+        ResolveContactSkill,
+        ScheduleLocalReminderSkill,
+        SendEmailSkill,
+        StartMeetingWorkflowSkill,
+    )
     from friday.skills.local.format_json import FormatJsonSkill
     from friday.skills.local.llm_text_skills import ExplainCodeSkill, SummarizeSkill
     from friday.skills.local.memory_skills import RecallSkill, RememberSkill
@@ -89,6 +108,21 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     registry.register(ExplainCodeSkill())
     registry.register(RememberSkill())
     registry.register(RecallSkill())
+    registry.register(ListCalendarEventsSkill(settings=settings))
+    registry.register(CreateCalendarEventSkill(settings=settings))
+    registry.register(CancelCalendarEventSkill(settings=settings))
+    registry.register(ModifyCalendarEventSkill(settings=settings))
+    registry.register(FindFreeSlotsSkill(settings=settings))
+    registry.register(SummarizeDaySkill(settings=settings))
+    registry.register(StatusCheckSkill(settings=settings))
+    registry.register(ListEmailsSkill(settings=settings))
+    registry.register(ReadEmailSkill(settings=settings))
+    registry.register(SendEmailSkill(settings=settings))
+    registry.register(DraftEmailReplySkill(settings=settings))
+    registry.register(ResolveContactSkill(settings=settings))
+    registry.register(StartMeetingWorkflowSkill(settings=settings))
+    registry.register(ScheduleLocalReminderSkill(settings=settings))
+    registry.register(PrepareMeetingSkill(settings=settings))
     registry.register(
         SearchWebSkill(max_results_default=settings.web_search_max_results)
     )

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { stateLabel } from '../state/machine'
 import { useAppStore } from '../state/store'
 import { ActivityTimeline } from './ActivityTimeline'
+import { AlertsBanner } from './AlertsBanner'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { ConnectionStatus } from './ConnectionStatus'
 import { ConversationPanel } from './ConversationPanel'
@@ -105,6 +106,7 @@ export function AppShell() {
         </div>
 
         {demo && <DemoBanner />}
+        <AlertsBanner />
 
         <header className="relative z-20 flex items-center gap-3 px-5 py-3 md:px-8">
           <div className="min-w-0 flex-1">

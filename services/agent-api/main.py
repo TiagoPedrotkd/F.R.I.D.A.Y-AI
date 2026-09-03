@@ -25,7 +25,7 @@ from friday.obs import new_request_id
 from friday.safety.confirmation import PendingAction
 from friday.tts.piper_engine import PiperEngine
 
-from session_store import run_chat, run_chat_stream, store
+from session_store import _execute_gated_action, run_chat, run_chat_stream, store
 
 _MONITORS_DIR = Path(__file__).resolve().parents[2] / "friday" / "monitors"
 
@@ -138,6 +138,7 @@ class PrefsUpdate(BaseModel):
     reduced_motion: bool | None = None
     user_address: str | None = None
     theme: Literal["dark", "light"] | None = None
+    productivity_patterns: dict[str, Any] | None = None
 
 
 class ConfirmRequest(BaseModel):
@@ -253,24 +254,14 @@ async def health_ready():
     except OSError as exc:
         checks["disk"] = {"ok": False, "error": str(exc)}
 
-    # RAG
-    rag_ok = False
-    rag_backend = "off"
-    rag_error = None
+    # RAG — filesystem/warm probe only (never load embedding weights here;
+    # cold load blocks the single uvicorn worker for minutes).
     try:
-        from friday.rag.doc_store import get_doc_store
+        from friday.rag.doc_store import probe_rag_index
 
-        store_docs = get_doc_store(settings)
-        rag_backend = store_docs.backend
-        rag_ok = bool(store_docs.available) or rag_backend == "keyword"
-        checks["rag"] = {
-            "ok": rag_ok,
-            "backend": rag_backend,
-            "index_dir": str(settings.rag_index_dir),
-        }
+        checks["rag"] = probe_rag_index(settings)
     except Exception as exc:
-        rag_error = str(exc)
-        checks["rag"] = {"ok": False, "error": rag_error}
+        checks["rag"] = {"ok": False, "error": str(exc)}
 
     ready = bool(llm.get("ok")) and bool(checks.get("disk", {}).get("ok"))
     return {
@@ -293,6 +284,18 @@ async def rag_reload():
         "backend": store_docs.backend,
         "available": store_docs.available,
     }
+
+
+@app.get("/v1/alerts")
+async def productivity_alerts():
+    """Proactive FRIDAY suggestions (rate-limited)."""
+    from friday.productivity.alerts import compute_alerts
+    from friday.productivity.context import build_productivity_context
+
+    settings = get_settings()
+    ctx = build_productivity_context(settings)
+    alerts = compute_alerts(settings, ctx=ctx)
+    return {"alerts": alerts, "context_time": ctx.get("current_time")}
 
 
 @app.get("/v1/metrics/summary")
@@ -366,6 +369,7 @@ async def get_session(session_id: str):
             "target": p.target,
             "summary": p.summary,
             "consequences": p.consequences,
+            "preview": getattr(p, "preview", None) or {},
         }
     return {
         "id": session.id,
@@ -541,8 +545,14 @@ async def put_prefs(body: PrefsUpdate, user_id: str = "default"):
     from friday.memory.prefs_store import PrefsStore
 
     settings = get_settings()
+    store = PrefsStore(settings.prefs_dir)
     patch = {k: v for k, v in body.model_dump().items() if v is not None}
-    prefs = PrefsStore(settings.prefs_dir).update(patch, user_id=user_id)
+    if isinstance(patch.get("productivity_patterns"), dict):
+        current = store.get(user_id)
+        merged = dict(current.get("productivity_patterns") or {})
+        merged.update(patch["productivity_patterns"])
+        patch["productivity_patterns"] = merged
+    prefs = store.update(patch, user_id=user_id)
     return {"user_id": user_id, "prefs": prefs}
 
 
@@ -569,13 +579,28 @@ async def confirm(body: ConfirmRequest):
     text = "sim" if body.decision == "confirm" else "nao"
     status, action = session.gate.interpret(text)
     if status == "confirmed" and action:
-        msg = f"Confirmado: {action.summary}."
+        msg, meta, next_pending = await _execute_gated_action(
+            action, get_settings(), session
+        )
         session.memory.add_assistant(msg)
-        await session.emit("state", {"state": "idle"})
+        await session.emit(
+            "state",
+            {"state": "awaiting_confirmation" if next_pending else "idle"},
+        )
         return {
             "ok": True,
             "decision": "confirmed",
             "reply": msg,
+            "metadata": meta,
+            "pending_confirmation": {
+                "action": next_pending.action,
+                "target": next_pending.target,
+                "summary": next_pending.summary,
+                "consequences": next_pending.consequences,
+                "preview": next_pending.preview,
+            }
+            if next_pending
+            else None,
             "action": {
                 "action": action.action,
                 "target": action.target,
@@ -583,6 +608,7 @@ async def confirm(body: ConfirmRequest):
             },
         }
     if status == "denied" and action:
+        session.workflow = None
         msg = f"Cancelado: {action.summary}."
         session.memory.add_assistant(msg)
         await session.emit("state", {"state": "idle"})
@@ -841,6 +867,26 @@ async def get_monitor(name: str, country: str | None = None):
 async def _refresh_monitors_on_startup() -> None:
     for kind in ("world", "finance"):
         _refresh_snapshot_html(kind)
+    asyncio.create_task(_periodic_productivity_alerts())
+
+
+async def _periodic_productivity_alerts() -> None:
+    """Push proactive alerts to live sessions every ~60s (rate-limited inside compute)."""
+    await asyncio.sleep(5)
+    while True:
+        try:
+            from friday.productivity.alerts import compute_alerts
+            from friday.productivity.context import build_productivity_context
+
+            settings = get_settings()
+            ctx = build_productivity_context(settings)
+            alerts = compute_alerts(settings, ctx=ctx)
+            if alerts:
+                for session in store.active_sessions():
+                    await session.emit("alerts", {"alerts": alerts})
+        except Exception as exc:
+            logger.debug("periodic alerts: %s", exc)
+        await asyncio.sleep(60)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,19 @@
 # F.R.I.D.A.Y-AI
 
-Assistente Pessoal Inteligente — projecto modular em 9 fases (0–8).
+Assistente Pessoal Inteligente — monorepo (agente local + treino LLM opcional).
+
+## Mapa rápido
+
+| Área | Onde |
+|------|------|
+| Layout do monorepo | [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md) |
+| Docs | [docs/README.md](docs/README.md) · [docs/fase-3/](docs/fase-3/) casa inteligente |
+
+| Runtime | `friday/` + `services/agent-api` + `apps/web` |
+| Treino | `friday-llm/` · [docs/fase-llm/](docs/fase-llm/) |
+| Scripts | `scripts/run`, `acceptance`, `training`, `ops` |
+
+Produção LLM: **Phi-4** via LM Studio até cutover manual.
 
 ## Fase 0 — Quick Start
 

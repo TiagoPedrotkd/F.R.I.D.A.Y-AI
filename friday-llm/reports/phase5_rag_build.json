@@ -1,10 +1,10 @@
 {
   "run_id": "friday-fase5-rag",
-  "built_at": "2026-09-02T22:03:24.715412+00:00",
-  "repo_documents": 30,
+  "built_at": "2026-09-04T22:59:55.811288+00:00",
+  "repo_documents": 45,
   "seed_documents": 3,
-  "unique_documents": 33,
-  "chunks": 64,
+  "unique_documents": 48,
+  "chunks": 82,
   "chunks_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\rag\\chunks.jsonl",
   "extracted_path": "D:\\Repositories\\F.R.I.D.A.Y-AI\\friday-llm\\data\\extracted\\repo_docs.jsonl",
   "dataset_id": "friday-rag-docs-v1"

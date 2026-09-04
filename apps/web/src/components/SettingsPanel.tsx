@@ -100,18 +100,50 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               onChange={(e) => setPrefs({ rate: Number(e.target.value) })}
             />
           </label>
-        </div>
-      </div>
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-          Agenda e padrões
-        </h3>
-        <div className="flex flex-col gap-3 text-sm">
+          <h3 className="pt-2 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Perfil pessoal
+          </h3>
+          {(
+            [
+              ['profileGoals', 'Objectivos'],
+              ['profileHabits', 'Hábitos'],
+              ['profilePreferences', 'Preferências'],
+              ['profileConstraints', 'Restrições'],
+              ['domainsOfInterest', 'Domínios (vírgulas)'],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="flex flex-col gap-1">
+              <span className="text-[var(--text-muted)]">{label}</span>
+              <textarea
+                className="min-h-[56px] rounded border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1.5 text-cyan"
+                value={prefs[key]}
+                onChange={(e) => setPrefs({ [key]: e.target.value } as Partial<Prefs>)}
+              />
+            </label>
+          ))}
+
+          <h3 className="pt-2 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Integrações
+          </h3>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={prefs.homeAssistantEnabled}
+              onChange={(e) => setPrefs({ homeAssistantEnabled: e.target.checked })}
+            />
+            <span className="text-[var(--text-muted)]">
+              Home Assistant (consulta; requer HA_ENABLED no .env)
+            </span>
+          </label>
+
+          <h3 className="pt-2 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Agenda e padrões
+          </h3>
           <label className="flex flex-col gap-1">
             <span className="text-[var(--text-muted)]">Horário de trabalho</span>
             <input
-              className="rounded border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5"
+              className="rounded border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1.5 text-cyan"
               value={prefs.workingHours}
               placeholder="9:00-18:00"
               onChange={(e) => setPrefs({ workingHours: e.target.value })}
@@ -124,7 +156,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               min={15}
               max={180}
               step={15}
-              className="rounded border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5"
+              className="rounded border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1.5 text-cyan"
               value={prefs.preferredMeetingDuration}
               onChange={(e) => setPrefs({ preferredMeetingDuration: Number(e.target.value) })}
             />
@@ -132,7 +164,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           <label className="flex flex-col gap-1">
             <span className="text-[var(--text-muted)]">Não incomodar</span>
             <input
-              className="rounded border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5"
+              className="rounded border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1.5 text-cyan"
               value={prefs.doNotDisturb}
               placeholder="22:00-8:00"
               onChange={(e) => setPrefs({ doNotDisturb: e.target.value })}

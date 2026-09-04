@@ -1,0 +1,6 @@
+# Specialist domain pack — finance (business / finance_economics)
+run_id: specialist-finance
+domain: finance
+pillar: business
+subarea: finance_economics
+output_dir: friday-llm/checkpoints/specialists/finance

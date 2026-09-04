@@ -28,4 +28,4 @@ bf16: false
 optim: paged_adamw_8bit
 gradient_checkpointing: true
 report_to: none
-notes: 'Incremental day 1: +10 docs (cumulative=10). Steps 0->40.'
+notes: 'Incremental day 1: +10 docs (cumulative=10, prefer_domain). Steps 0->40.'

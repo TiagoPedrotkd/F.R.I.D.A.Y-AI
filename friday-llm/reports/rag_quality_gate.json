@@ -1,9 +1,9 @@
 {
   "ok": true,
   "n": 11,
-  "hits_at_k": 6,
-  "recall@3": 0.5455,
-  "mrr": 0.4848,
+  "hits_at_k": 8,
+  "recall@3": 0.7273,
+  "mrr": 0.6212,
   "details": [
     {
       "query": "Como ligar ao LM Studio?",
@@ -16,14 +16,14 @@
           "score": 0.6708
         },
         {
-          "title": "README",
-          "id": "README.md",
-          "score": 0.3401
+          "title": "cutover",
+          "id": "docs/fase-llm/cutover.md",
+          "score": 0.3707
         },
         {
-          "title": "mic troubleshooting",
-          "id": "docs/fase-1/mic-troubleshooting.md",
-          "score": 0.3344
+          "title": "README",
+          "id": "docs/README.md",
+          "score": 0.3521
         }
       ]
     },
@@ -43,16 +43,16 @@
           "score": 0.5089
         },
         {
-          "title": "README",
-          "id": "README.md",
-          "score": 0.4786
+          "title": "cutover",
+          "id": "docs/fase-llm/cutover.md",
+          "score": 0.498
         }
       ]
     },
     {
       "query": "Como correr o agent-api e a UI web?",
-      "hit": false,
-      "rank": null,
+      "hit": true,
+      "rank": 2,
       "top": [
         {
           "title": "Skills contract",
@@ -60,14 +60,14 @@
           "score": 0.4713
         },
         {
-          "title": "LM Studio setup",
-          "id": "docs/fase-0/lm-studio-setup.md",
-          "score": 0.3328
+          "title": "desktop tauri",
+          "id": "docs/fase-2/desktop-tauri.md",
+          "score": 0.3388
         },
         {
-          "title": "conversacao",
-          "id": "docs/fase-1/conversacao.md",
-          "score": 0.3132
+          "title": "README",
+          "id": "docs/README.md",
+          "score": 0.333
         }
       ]
     },
@@ -109,9 +109,9 @@
           "score": 0.2882
         },
         {
-          "title": "README",
-          "id": "docs/fase-1/README.md",
-          "score": 0.2745
+          "title": "LM Studio setup",
+          "id": "docs/fase-0/lm-studio-setup.md",
+          "score": 0.2505
         }
       ]
     },
@@ -126,14 +126,14 @@
           "score": 0.71
         },
         {
-          "title": "INCREMENTAL TRAINER",
-          "id": "friday-llm/docs/INCREMENTAL_TRAINER.md",
-          "score": 0.3673
-        },
-        {
           "title": "conversacao",
           "id": "docs/fase-1/conversacao.md",
           "score": 0.3367
+        },
+        {
+          "title": "Skills contract",
+          "id": "docs/fase-1/skills-contract.md",
+          "score": 0.3098
         }
       ]
     },
@@ -148,14 +148,14 @@
           "score": 0.3345
         },
         {
+          "title": "README",
+          "id": "README.md",
+          "score": 0.3202
+        },
+        {
           "title": "Tres camadas de conhecimento",
           "id": "friday-llm/reports/phase0_audit.md",
           "score": 0.3122
-        },
-        {
-          "title": "README",
-          "id": "README.md",
-          "score": 0.3072
         }
       ]
     },
@@ -165,6 +165,11 @@
       "rank": null,
       "top": [
         {
+          "title": "README",
+          "id": "docs/README.md",
+          "score": 0.424
+        },
+        {
           "title": "conversacao",
           "id": "docs/fase-1/conversacao.md",
           "score": 0.4033
@@ -173,11 +178,6 @@
           "title": "Skills contract",
           "id": "docs/fase-1/skills-contract.md",
           "score": 0.385
-        },
-        {
-          "title": "Tres camadas de conhecimento",
-          "id": "friday-llm/reports/phase0_audit.md",
-          "score": 0.3835
         }
       ]
     },
@@ -227,23 +227,23 @@
     },
     {
       "query": "WEB_SOURCE_REQUIRED research_web citacoes",
-      "hit": false,
-      "rank": null,
+      "hit": true,
+      "rank": 1,
       "top": [
+        {
+          "title": "README",
+          "id": "docs/README.md",
+          "score": 0.3704
+        },
         {
           "title": "noticias financas worldwide",
           "id": "docs/fase-1/noticias-financas-worldwide.md",
           "score": 0.349
         },
         {
-          "title": "conversacao",
-          "id": "docs/fase-1/conversacao.md",
-          "score": 0.32
-        },
-        {
-          "title": "README",
-          "id": "docs/fase-1/README.md",
-          "score": 0.2902
+          "title": "domain packs",
+          "id": "docs/fase-llm/domain-packs.md",
+          "score": 0.3426
         }
       ]
     }

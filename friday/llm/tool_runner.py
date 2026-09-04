@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
@@ -295,6 +296,29 @@ class ToolRunner:
             )
         conf = confidence_report(text, grounding=g, tool_rounds=0)
         meta["confidence"] = conf
+        try:
+            from friday.llm.quality import (
+                format_hedge,
+                needs_low_confidence_hedge,
+                score_response,
+            )
+
+            qscores = score_response(
+                text,
+                user_text=user_text,
+                has_personal_context=bool(getattr(self, "_last_domain", None)),
+                used_tools=used_web or bool(last_meta),
+                routing_primary=str(getattr(self, "_last_domain", "general") or "general"),
+            )
+            meta["quality_scores"] = qscores
+            meta["domain"] = getattr(self, "_last_domain", "general")
+            pillar = getattr(self, "_last_pillar", None)
+            if pillar:
+                meta["pillar"] = pillar
+            if needs_low_confidence_hedge(qscores):
+                text = text.rstrip() + format_hedge(qscores)
+        except Exception:
+            pass
         return ChatReply(
             text=text,
             tool_rounds=0,
@@ -302,6 +326,80 @@ class ToolRunner:
             grounding=g,
             confidence=conf,
         )
+
+    @staticmethod
+    def _is_trivial_utterance(user_text: str) -> bool:
+        t = (user_text or "").strip().casefold()
+        if len(t.split()) <= 3 and not any(
+            x in t for x in ("como", "onde", "porque", "porquê", "why", "how", "where")
+        ):
+            return True
+        if re.search(r"^(ola|olá|oi|hey|hello|bom dia|boa tarde|boa noite)\b", t):
+            return True
+        return False
+
+    def _should_reflect(self, user_text: str, reply: ChatReply) -> bool:
+        if self._is_trivial_utterance(user_text):
+            return False
+        meta = reply.skill_metadata or {}
+        q = meta.get("quality_scores") or {}
+        if q:
+            avg = sum(float(v) for v in q.values()) / max(len(q), 1)
+            if avg < 0.7:
+                return True
+        g = reply.grounding or meta.get("grounding") or {}
+        if g and float(g.get("score") or 1.0) < 0.55:
+            return True
+        if re.search(
+            r"\b(diagnost|arquitect|arquitet|multi[- ]?passo|porque|porquê|"
+            r"analisa|compara|relac|depend)\w*\b",
+            user_text or "",
+            re.I,
+        ):
+            return True
+        return False
+
+    def _maybe_reflect(self, reply: ChatReply, user_text: str) -> ChatReply:
+        """One-shot self-correction pass; falls back to hedged reply on failure."""
+        if not self._should_reflect(user_text, reply):
+            return reply
+        try:
+            from friday.llm.prompts import REFLECT_INSTRUCTION
+
+            draft = (reply.text or "").strip()
+            if not draft or len(draft) < 20:
+                return reply
+            messages = [
+                {"role": "system", "content": REFLECT_INSTRUCTION},
+                {
+                    "role": "user",
+                    "content": f"Pergunta: {user_text}\n\nRascunho:\n{draft}",
+                },
+            ]
+            response = self._client.create_completion(
+                messages=messages,
+                tools=None,
+                tool_choice=None,
+                max_tokens=512,
+                temperature=0.1,
+            )
+            revised = (response.choices[0].message.content or "").strip()
+            if not revised or revised == draft:
+                return reply
+            # Keep metadata; mark reflect
+            meta = dict(reply.skill_metadata or {})
+            meta["reflected"] = True
+            out = ChatReply(
+                text=revised,
+                tool_rounds=reply.tool_rounds,
+                skill_metadata=meta,
+                grounding=reply.grounding,
+                confidence=reply.confidence,
+            )
+            return out
+        except Exception as exc:
+            logger.debug("reflect skipped: %s", exc)
+            return reply
 
     async def _run_skill_direct(
         self,
@@ -382,6 +480,65 @@ class ToolRunner:
             )
         except Exception as exc:
             logger.debug("productivity context skipped: %s", exc)
+
+        # Phase 1–2: personal profile + domain routing + specialist hint
+        try:
+            from friday.llm.domain_router import format_routing_block, route_domains
+            from friday.llm.specialists_registry import (
+                format_specialist_hint,
+                resolve_specialist,
+            )
+            from friday.memory.prefs_store import PrefsStore
+
+            prefs = PrefsStore(self._settings.prefs_dir).get("default")
+            profile = prefs.get("user_profile") if isinstance(prefs.get("user_profile"), dict) else {}
+            if profile:
+                lines = ["=== PERSONAL CONTEXT ==="]
+                for key in (
+                    "display_name",
+                    "goals",
+                    "constraints",
+                    "habits",
+                    "preferences",
+                    "domains_of_interest",
+                    "recent_notes",
+                ):
+                    val = profile.get(key)
+                    if val:
+                        lines.append(f"{key}: {val}")
+                messages.append({"role": "system", "content": "\n".join(lines)})
+            interest = profile.get("domains_of_interest") if profile else None
+            if isinstance(interest, str):
+                interest = [x.strip() for x in interest.split(",") if x.strip()]
+            ranked = route_domains(user_text, domains_of_interest=interest or [])
+            messages.append({"role": "system", "content": format_routing_block(ranked)})
+            primary = ranked[0]["domain"] if ranked else "general"
+            pillar = ranked[0].get("pillar") if ranked else None
+            spec = resolve_specialist(primary, self._settings)
+            hint = format_specialist_hint(spec)
+            if hint:
+                messages.append({"role": "system", "content": hint})
+            self._last_domain = primary
+            self._last_pillar = pillar
+            try:
+                import re as _re
+
+                from friday.rag.knowledge_graph import format_graph_block, search_graph
+
+                if _re.search(
+                    r"\b(relac|depend|arquitect|arquitet|grafo|interage|conecta)\w*\b",
+                    user_text,
+                    _re.I,
+                ):
+                    ghits = search_graph(user_text, top_k=6, settings=self._settings)
+                    gblock = format_graph_block(ghits)
+                    if gblock:
+                        messages.append({"role": "system", "content": gblock})
+            except Exception:
+                pass
+        except Exception as exc:
+            logger.debug("personal/routing context skipped: %s", exc)
+
         if self._settings.web_source_required and needs_web_grounding(user_text):
             messages.append(
                 {"role": "system", "content": SOURCE_REQUIRED_INSTRUCTION}
@@ -535,7 +692,7 @@ class ToolRunner:
                         used_web=used_web,
                     )
                     reply.tool_rounds = rounds
-                    return reply
+                    return self._maybe_reflect(reply, user_text)
 
             if not tool_calls:
                 reply_text = (message.content or "").strip()
@@ -550,7 +707,7 @@ class ToolRunner:
                     used_web=used_web,
                 )
                 reply.tool_rounds = rounds
-                return reply
+                return self._maybe_reflect(reply, user_text)
 
             if rounds >= max_rounds:
                 return ChatReply(
@@ -720,7 +877,7 @@ class ToolRunner:
             used_web=used_web,
         )
         reply.tool_rounds = 1
-        return reply
+        return self._maybe_reflect(reply, user_text)
 
     async def _run_plan(
         self,
@@ -758,7 +915,7 @@ class ToolRunner:
         if meta:
             meta["plan_steps"] = [s.skill for s in steps]
             reply.skill_metadata = meta
-        return reply
+        return self._maybe_reflect(reply, user_text)
 
     async def stream_chat(
         self,
@@ -960,6 +1117,7 @@ class ToolRunner:
             last_meta=last_meta,
             used_web=False,
         )
+        reply = self._maybe_reflect(reply, user_text)
         obs.finish(path="stream", chars=len(full))
         yield ("done", reply)
 

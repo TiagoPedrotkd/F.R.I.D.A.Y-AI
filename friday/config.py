@@ -151,6 +151,15 @@ class Settings(BaseSettings):
     smtp_from: str = Field(default="", alias="SMTP_FROM")
     email_use_ssl: bool = Field(default=True, alias="EMAIL_USE_SSL")
 
+    # Fase 3 — Home Assistant / MQTT / Frigate
+    ha_enabled: bool = Field(default=False, alias="HA_ENABLED")
+    ha_url: str = Field(default="http://127.0.0.1:8123", alias="HA_URL")
+    ha_token: str = Field(default="", alias="HA_TOKEN")
+    mqtt_host: str = Field(default="127.0.0.1", alias="MQTT_HOST")
+    mqtt_port: int = Field(default=1883, alias="MQTT_PORT")
+    frigate_enabled: bool = Field(default=False, alias="FRIGATE_ENABLED")
+    frigate_url: str = Field(default="http://127.0.0.1:5000", alias="FRIGATE_URL")
+
     # User-facing error messages (Portuguese)
     error_network_pt: str = Field(
         default="Nao consegui ligar ao modelo. Tenta outra vez.",

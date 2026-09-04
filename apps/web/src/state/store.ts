@@ -120,6 +120,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
           preferred_meeting_duration: prefs.preferredMeetingDuration,
           do_not_disturb: prefs.doNotDisturb,
         },
+        user_profile: {
+          goals: prefs.profileGoals,
+          habits: prefs.profileHabits,
+          preferences: prefs.profilePreferences,
+          constraints: prefs.profileConstraints,
+          domains_of_interest: prefs.domainsOfInterest
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+        },
+        integrations_enabled: {
+          weather: true,
+          health_file: true,
+          notion_export: true,
+          strava_file: true,
+          home_assistant: prefs.homeAssistantEnabled,
+        },
       })
       .catch(() => undefined)
   },
@@ -174,6 +191,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
           }
           if (typeof patterns.do_not_disturb === 'string') {
             prefs.doNotDisturb = patterns.do_not_disturb
+          }
+        }
+        const up = rp.user_profile
+        if (up && typeof up === 'object') {
+          const profile = up as Record<string, unknown>
+          if (typeof profile.goals === 'string') prefs.profileGoals = profile.goals
+          if (typeof profile.habits === 'string') prefs.profileHabits = profile.habits
+          if (typeof profile.preferences === 'string') prefs.profilePreferences = profile.preferences
+          if (typeof profile.constraints === 'string') prefs.profileConstraints = profile.constraints
+          if (Array.isArray(profile.domains_of_interest)) {
+            prefs.domainsOfInterest = profile.domains_of_interest.map(String).join(', ')
+          }
+        }
+        const integ = rp.integrations_enabled
+        if (integ && typeof integ === 'object') {
+          const ie = integ as Record<string, unknown>
+          if (typeof ie.home_assistant === 'boolean') {
+            prefs.homeAssistantEnabled = ie.home_assistant
           }
         }
         setJson('prefs', prefs)

@@ -83,6 +83,11 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     from friday.skills.local.memory_skills import RecallSkill, RememberSkill
     from friday.skills.local.system_info import SystemInfoSkill
     from friday.skills.local.word_count import WordCountSkill
+    from friday.skills.local.integration_skills import (
+        GetHealthSummarySkill,
+        GetWeatherSkill,
+        SearchPersonalNotesSkill,
+    )
     from friday.skills.mock.joke_skill import JokeSkill
     from friday.skills.news import (
         CountryBriefingSkill,
@@ -93,6 +98,7 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
         WorldNewsSkill,
     )
     from friday.skills.rag.search_docs import SearchDocsSkill
+    from friday.skills.rag.search_knowledge_graph import SearchKnowledgeGraphSkill
     from friday.skills.web.fetch_url import FetchUrlSkill
     from friday.skills.web.research_web import ResearchWebSkill
     from friday.skills.web.search_web import SearchWebSkill
@@ -123,6 +129,19 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     registry.register(StartMeetingWorkflowSkill(settings=settings))
     registry.register(ScheduleLocalReminderSkill(settings=settings))
     registry.register(PrepareMeetingSkill(settings=settings))
+    registry.register(GetWeatherSkill(settings=settings))
+    registry.register(GetHealthSummarySkill(settings=settings))
+    registry.register(SearchPersonalNotesSkill(settings=settings))
+    if getattr(settings, "ha_enabled", False):
+        from friday.skills.local.ha_skills import (
+            HaGetStateSkill,
+            HaGetStatusSkill,
+            HaListEntitiesSkill,
+        )
+
+        registry.register(HaGetStatusSkill(settings=settings), aliases=["get_home_status"])
+        registry.register(HaListEntitiesSkill(settings=settings))
+        registry.register(HaGetStateSkill(settings=settings))
     registry.register(
         SearchWebSkill(max_results_default=settings.web_search_max_results)
     )
@@ -130,6 +149,7 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
         ResearchWebSkill(max_results_default=settings.web_search_max_results)
     )
     registry.register(SearchDocsSkill(settings=settings))
+    registry.register(SearchKnowledgeGraphSkill(settings=settings))
     registry.register(FetchUrlSkill())
     registry.register(
         WorldNewsSkill(

@@ -1,0 +1,182 @@
+# FRIDAY MoE catalog — 6 Grandes Pilares + leaf domains (specialists)
+# Patterns are regex (casefolded, accents stripped at match time).
+
+pillars:
+  stem:
+    title: "Exatas, Tecnologia e Engenharia (STEM)"
+    description: "Logica formal, codigo, calculos e leis fisicas."
+    subareas:
+      software_devops:
+        title: "Desenvolvimento de Software & DevOps"
+        description: "Linguagens, arquitectura, dados, CI/CD, seguranca."
+      math_stats:
+        title: "Matematica Avancada & Estatistica"
+        description: "Algebra linear, calculo, probabilidade, teoria dos jogos."
+      data_ml:
+        title: "Ciencia de Dados & Machine Learning"
+        description: "Algoritmos de IA, estatistica aplicada, modelagem preditiva."
+      engineering:
+        title: "Engenharias"
+        description: "Eletrica, mecanica, civil, quimica, aeroespacial, robotica."
+      physics_astro:
+        title: "Fisica & Astronomia"
+        description: "Mecanica quantica, astrofisica, termodinamica."
+
+  life_health:
+    title: "Ciencias Biologicas, Saude e Medicina"
+    description: "Vida, corpo humano e ambiente."
+    subareas:
+      clinical_medicine:
+        title: "Medicina Clinica & Diagnostico"
+        description: "Sintomas, tratamentos, farmacologia, patologia."
+      genetics_molecular:
+        title: "Genetica & Biologia Molecular"
+        description: "DNA/RNA, biotecnologia, bioinformatica."
+      neuroscience_cognition:
+        title: "Neurociencia & Cognicao"
+        description: "Mapeamento cerebral, neuroquimica, processos cognitivos."
+      ecology_environment:
+        title: "Ecologia & Meio Ambiente"
+        description: "Botanica, zoologia, clima, sustentabilidade."
+
+  humanities:
+    title: "Humanidades e Ciencias Sociais"
+    description: "Sociedade, mente, historia e relacoes humanas."
+    subareas:
+      psychology:
+        title: "Psicologia & Ciencias Cognitivas"
+        description: "Comportamento, saude mental, psicologia social."
+      law_regulation:
+        title: "Direito, Regulacao & Legislacao"
+        description: "Legislacao, contratos, compliance, direito internacional."
+      history_geo_anthro:
+        title: "Historia, Geografia & Antropologia"
+        description: "Cronologia, geopolitica, evolucao cultural."
+      philosophy_ethics:
+        title: "Filosofia, Etica & Epistemologia"
+        description: "Logica filosofica, etica aplicada a tecnologia."
+      sociology_politics:
+        title: "Sociologia & Ciencia Politica"
+        description: "Governanca, politicas publicas, sistemas politicos."
+
+  language:
+    title: "Linguagem, Comunicacao e Expressao"
+    description: "Traducao, escrita, analise textual e estruturacao."
+    subareas:
+      linguistics_translation:
+        title: "Linguistica & Traducao"
+        description: "Gramatica, semantica, traducao tecnica e natural."
+      creative_copy:
+        title: "Redacao Criativa & Copywriting"
+        description: "Escrita persuasiva, literaria, roteirizacao, tom de voz."
+      discourse_comms:
+        title: "Analise de Discurso & Comunicacao"
+        description: "Comunicacao corporativa, RP, semiotica."
+
+  business:
+    title: "Negocios, Economia e Operacoes"
+    description: "Financas, gestao, mercado e estrategia."
+    subareas:
+      finance_economics:
+        title: "Financas & Economia"
+        description: "Macro/micro, investimentos, contabilidade, mercados."
+      management_strategy:
+        title: "Gestao, Estrategia & Lideranca"
+        description: "Planeamento, governanca, Agile/Scrum, processos."
+      marketing_sales_product:
+        title: "Marketing, Vendas & Produto"
+        description: "Mercado, consumidor, product management, growth."
+      ops_supply_chain:
+        title: "Operacoes & Cadeia de Suprimentos"
+        description: "Logistica, otimizacao, compras, qualidade."
+
+  practical:
+    title: "Conhecimento Pratico, Artes e Cotidiano"
+    description: "Fazer, cultura visual/auditiva e conhecimento utilitario."
+    subareas:
+      arts_design:
+        title: "Artes Visuais, Design & Estetica"
+        description: "UI/UX, cores, historia da arte, interiores."
+      music_av:
+        title: "Musica & Producao Audiovisual"
+        description: "Teoria musical, composicao, edicao audio/video."
+      diy_home:
+        title: "Resolucao de Problemas Domesticos & DIY"
+        description: "Culinaria, manutencao, jardinagem, organizacao."
+      games_entertainment:
+        title: "Jogos & Entretenimento"
+        description: "Game design, gameplay, cultura pop, esportes."
+
+domains:
+  general:
+    patterns: []
+
+  productivity:
+    pillar: business
+    subarea: management_strategy
+    patterns:
+      - "\\bagenda\\b"
+      - "\\breuniao\\b"
+      - "\\bemail\\b"
+      - "\\bcalendario\\b"
+      - "\\bcompromisso\\b"
+      - "\\bmeeting\\b"
+      - "\\binbox\\b"
+
+  finance:
+    pillar: business
+    subarea: finance_economics
+    patterns:
+      - "\\bfinanc"
+      - "\\binvest"
+      - "\\borcamento\\b"
+      - "\\bbudget\\b"
+      - "\\bdinheiro\\b"
+      - "\\bimposto"
+
+  tech:
+    pillar: stem
+    subarea: software_devops
+    patterns:
+      - "\\bcodigo\\b"
+      - "\\bpython\\b"
+      - "\\bapi\\b"
+      - "\\bllm\\b"
+      - "\\bgit\\b"
+      - "\\bdocker\\b"
+
+  health_sport:
+    pillar: practical
+    subarea: games_entertainment
+    patterns:
+      - "\\btreino\\b"
+      - "\\bworkout\\b"
+      - "\\bfutebol\\b"
+      - "\\bgym\\b"
+
+  taekwondo:
+    pillar: practical
+    subarea: games_entertainment
+    patterns:
+      - "\\btaekwondo\\b"
+      - "\\btkd\\b"
+      - "\\bpoomsae\\b"
+      - "\\bdojang\\b"
+
+  nutrition:
+    pillar: life_health
+    subarea: clinical_medicine
+    patterns:
+      - "\\bcomida\\b"
+      - "\\bdieta\\b"
+      - "\\bnutric"
+      - "\\bcalorias\\b"
+
+  sleep:
+    pillar: life_health
+    subarea: neuroscience_cognition
+    patterns:
+      - "\\bsono\\b"
+      - "\\bdormir\\b"
+      - "\\binsonia\\b"
+      - "\\bsleep\\b"

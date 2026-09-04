@@ -44,7 +44,16 @@ _DOC = re.compile(
     r"documentos internos|arquivo interno|"
     r"o que diz (o |a )?(manual|documento|documentacao|documentação|readme)|"
     r"pesquisa nos documentos|procura nos documentos|"
-    r"internal doc"
+    r"internal doc|"
+    # Setup / ops facts (prefer RAG over inventing)
+    r"lm[_ ]?studio|agent[- ]?api|porta\s*(8090|5173|1234|8080)|"
+    r"rag[_ ]?chroma|friday_docs|search_docs|"
+    r"wake[- ]?word|openwakeword|hey jarvis|"
+    r"whisper|piper|"
+    r"lm_studio_model|\.env|"
+    r"como (correr|arrancar|ligar|configurar) (o |a )?(agent|api|ui|web|friday)|"
+    r"onde fica (o |a )?(indice|índice|index|pasta)|"
+    r"tres camadas|três camadas|cpt.*sft.*rag|camadas de conhecimento"
     r")\b",
     re.I,
 )

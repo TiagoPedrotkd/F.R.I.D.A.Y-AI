@@ -1,5 +1,28 @@
 # Treino incremental CPT — guia coach
 
+## Reset (2026-09-04)
+
+O run anterior foi arquivado em `friday-llm/checkpoints/archive/cpt-incremental-20260904/`.
+O progresso voltou a **dia 0**. Próximos dias devem usar `--prefer-domain` e packs por domínio
+(ver [docs/fase-llm/domain-packs.md](../../docs/fase-llm/domain-packs.md)).
+
+## CPT vs RAG vs LoRA (comportamento)
+
+| Camada | Serve para | Nao serve para |
+|--------|------------|----------------|
+| **CPT incremental** | Base linguistica / dominio local partilhado | Factos que mudam (ports, manuais) |
+| **RAG + GraphRAG leve** | Factos e relacoes actualizaveis | Substituir o tom do assistente |
+| **SFT / LoRA behavior** | Tom, formato, tool-use, CoT | Memorizar documentacao |
+
+Seed de comportamento: `friday-llm/data/sft/behavior/seed_behavior.jsonl`.
+Comparativo: [docs/fase-llm/rag-moe.md](../../docs/fase-llm/rag-moe.md).
+
+Dia 1 ja concluido (checkpoint-40). Proximo dia (quando quiseres GPU):
+
+```powershell
+python -m friday_llm.training.incremental.cli --day 2 --add 15 --prefer-domain --train
+```
+
 ## Regra
 
 **Os documentos que defines mandam.** O ciclo treina esses docs no corpus cumulativo.
@@ -20,6 +43,7 @@ Ou só prepara e corre o script gerado:
 ```powershell
 python -m friday_llm.training.incremental.cli --day 1 --add 10
 .\scripts\cpt_day_1.ps1
+# (wrapper → scripts\training\cpt_day_1.ps1)
 ```
 
 3. Vê o progresso:

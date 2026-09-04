@@ -9,7 +9,9 @@ paths:
 repo_docs:
   globs:
     - docs/**/*.md
+    - docs/fase-llm/**/*.md
     - friday-llm/docs/**/*.md
+    - friday-llm/data/rag/facts/**/*.md
     - friday-llm/README.md
     - README.md
     - friday-llm/reports/phase0_audit.md

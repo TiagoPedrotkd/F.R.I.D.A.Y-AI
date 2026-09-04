@@ -1,0 +1,20 @@
+# Frigate stub — Sem câmeras. Activar só com: docker compose --profile frigate up -d
+# Docs: docs/fase-3/frigate.md
+
+mqtt:
+  enabled: false
+  # host: mosquitto
+  # port: 1883
+
+cameras: {}
+
+detect:
+  enabled: false
+
+record:
+  enabled: false
+
+snapshots:
+  enabled: false
+
+version: 0.14-0

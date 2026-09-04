@@ -20,6 +20,8 @@ _DEFAULTS: dict[str, Any] = {
     "user_address": None,
     "theme": "dark",
     "productivity_patterns": None,
+    "user_profile": None,
+    "integrations_enabled": None,
 }
 
 

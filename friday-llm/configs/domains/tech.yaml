@@ -1,0 +1,7 @@
+# Specialist domain pack — tech (STEM / software_devops)
+run_id: specialist-tech
+domain: tech
+pillar: stem
+subarea: software_devops
+base_note: Train or copy a LoRA adapter into friday-llm/checkpoints/specialists/tech/adapter
+output_dir: friday-llm/checkpoints/specialists/tech

@@ -1,4 +1,9 @@
-"""Build Fase 4 SFT dataset: conversation, personality, tools, safety."""
+"""Build Fase 4 SFT dataset: conversation, personality, tools, safety.
+
+Behavior seed (CoT / tools / refusals) lives at:
+  friday-llm/data/sft/behavior/seed_behavior.jsonl
+Merge that JSONL into SFT runs when training policy after CPT — do not use CPT for mutable facts.
+"""
 
 from __future__ import annotations
 

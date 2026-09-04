@@ -119,11 +119,13 @@ class ChatRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     session_id: str
     message_id: str | None = None
-    rating: Literal["up", "down"]
+    rating: Literal["up", "down", "meh"] = "up"
     reply_text: str | None = None
     user_text: str | None = None
     comment: str | None = None
     grounding_score: float | None = None
+    domain: str | None = None
+    pillar: str | None = None
 
 
 class PrefsUpdate(BaseModel):
@@ -139,6 +141,8 @@ class PrefsUpdate(BaseModel):
     user_address: str | None = None
     theme: Literal["dark", "light"] | None = None
     productivity_patterns: dict[str, Any] | None = None
+    user_profile: dict[str, Any] | None = None
+    integrations_enabled: dict[str, Any] | None = None
 
 
 class ConfirmRequest(BaseModel):
@@ -512,9 +516,23 @@ async def upload_file(
 
 @app.post("/v1/feedback")
 async def feedback(body: FeedbackRequest):
+    from friday.llm.domain_router import route_domains
+    from friday.llm.quality import update_domain_stats
     from friday.quality.feedback import FeedbackStore
 
     settings = get_settings()
+    domain = body.domain
+    pillar = body.pillar
+    ranked = None
+    if (not domain or not pillar) and body.user_text:
+        ranked = route_domains(body.user_text)
+        if ranked:
+            if not domain:
+                domain = ranked[0]["domain"]
+            if not pillar:
+                pillar = ranked[0].get("pillar")
+    if not domain:
+        domain = "general"
     fb = FeedbackStore(settings.feedback_path)
     row = fb.append(
         {
@@ -525,9 +543,23 @@ async def feedback(body: FeedbackRequest):
             "user_text": (body.user_text or "")[:2000],
             "comment": (body.comment or "")[:1000],
             "grounding_score": body.grounding_score,
+            "domain": domain,
+            "pillar": pillar,
         }
     )
+    try:
+        stats_path = Path(settings.feedback_path).parent / "domain_stats.json"
+        update_domain_stats(stats_path, domain or "general", body.rating)
+    except Exception:
+        pass
     return {"ok": True, "stored": row}
+
+
+@app.get("/v1/specialists")
+async def list_specialists_endpoint():
+    from friday.llm.specialists_registry import list_specialists
+
+    return {"specialists": list_specialists()}
 
 
 @app.get("/v1/prefs")
@@ -547,6 +579,16 @@ async def put_prefs(body: PrefsUpdate, user_id: str = "default"):
     settings = get_settings()
     store = PrefsStore(settings.prefs_dir)
     patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    if isinstance(patch.get("user_profile"), dict):
+        current = store.get(user_id)
+        merged = dict(current.get("user_profile") or {})
+        merged.update(patch["user_profile"])
+        patch["user_profile"] = merged
+    if isinstance(patch.get("integrations_enabled"), dict):
+        current = store.get(user_id)
+        merged_i = dict(current.get("integrations_enabled") or {})
+        merged_i.update(patch["integrations_enabled"])
+        patch["integrations_enabled"] = merged_i
     if isinstance(patch.get("productivity_patterns"), dict):
         current = store.get(user_id)
         merged = dict(current.get("productivity_patterns") or {})

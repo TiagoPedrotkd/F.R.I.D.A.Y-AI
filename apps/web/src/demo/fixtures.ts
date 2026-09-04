@@ -14,6 +14,12 @@ export type Prefs = {
   workingHours: string
   preferredMeetingDuration: number
   doNotDisturb: string
+  profileGoals: string
+  profileHabits: string
+  profilePreferences: string
+  profileConstraints: string
+  domainsOfInterest: string
+  homeAssistantEnabled: boolean
 }
 
 export const defaultPrefs: Prefs = {
@@ -32,6 +38,12 @@ export const defaultPrefs: Prefs = {
   workingHours: '9:00-18:00',
   preferredMeetingDuration: 30,
   doNotDisturb: '22:00-8:00',
+  profileGoals: '',
+  profileHabits: '',
+  profilePreferences: '',
+  profileConstraints: '',
+  domainsOfInterest: 'productivity,tech',
+  homeAssistantEnabled: true,
 }
 
 export const DEMO_FIXTURES = {

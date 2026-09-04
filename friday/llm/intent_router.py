@@ -286,6 +286,31 @@ _PREPARE_MEETING_PATTERNS = (
     r"\bbrief(ing)? (da |de |para )?(reuniao|meeting)\b",
 )
 
+_WEATHER_PATTERNS = (
+    r"\btempo\b",
+    r"\bclima\b",
+    r"\btemperatura\b",
+    r"\bweather\b",
+    r"\bchuva\b",
+    r"\bmeterolog",
+)
+
+_HA_STATUS_PATTERNS = (
+    r"\bestado da casa\b",
+    r"\bhome assistant\b",
+    r"\bha online\b",
+    r"\bcasa inteligente\b",
+    r"\bstatus (do |da )?(ha|home assistant|casa)\b",
+)
+
+_HA_LIST_PATTERNS = (
+    r"\blista (as |os )?(entidades|luzes|sensores|switches)\b",
+    r"\bentidades (do |da )?(ha|home assistant|casa)\b",
+    r"\bluzes (da |do )?casa\b",
+    r"\bsensores (da |do )?casa\b",
+    r"\blist (home|ha) entities\b",
+)
+
 _REMEMBER_PATTERNS = (
     r"\bguarda (esta |isso |a )?conclus",
     r"\bguarda (isto|isso|esta ideia)\b",
@@ -584,6 +609,20 @@ def _match_country_routes(norm: str) -> tuple[str, dict] | None:
     return None
 
 
+def _match_knowledge_graph(raw: str, norm: str) -> tuple[str, dict] | None:
+    if re.search(
+        r"\b("
+        r"relac[aã]o|relacoes|relações|depende|dependencias|dependências|"
+        r"arquitectura|arquitetura|interage|ligado a|conecta|"
+        r"grafo|knowledge graph|o que usa|quem depende"
+        r")\b",
+        norm,
+        re.I,
+    ):
+        return "search_knowledge_graph", {"query": raw}
+    return None
+
+
 def _match_rag(raw: str) -> tuple[str, dict] | None:
     from friday_llm.rag.router import route_query
 
@@ -611,6 +650,10 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
     url = _extract_url(raw)
     hit = _match_fetch(raw, norm, url)
     if hit and (re.search(_FETCH_INTENT, norm) or raw.strip() == url):
+        return hit
+
+    hit = _match_knowledge_graph(raw, norm)
+    if hit:
         return hit
 
     hit = _match_rag(raw)
@@ -645,6 +688,24 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
         return "status_check", {}
     if _any_pattern(norm, _FIND_TIME_PATTERNS):
         return "find_free_slots", {"duration_min": 30}
+
+    if _any_pattern(norm, _WEATHER_PATTERNS):
+        return "get_weather", {}
+
+    if _any_pattern(norm, _HA_STATUS_PATTERNS):
+        return "ha_get_status", {}
+    if _any_pattern(norm, _HA_LIST_PATTERNS):
+        domain = None
+        if re.search(r"\bluz", norm):
+            domain = "light"
+        elif re.search(r"\bsensor", norm):
+            domain = "sensor"
+        elif re.search(r"\bswitch", norm):
+            domain = "switch"
+        args: dict = {}
+        if domain:
+            args["domain"] = domain
+        return "ha_list_entities", args
 
     hit = _match_calendar_mutate(raw, norm)
     if hit:

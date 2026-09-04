@@ -272,9 +272,16 @@ def prepare_day(
 
     script_path = None
     if write_script:
-        script_path = resolve_path(f"scripts/cpt_day_{day}.ps1")
+        script_path = resolve_path(f"scripts/training/cpt_day_{day}.ps1")
         script_path.parent.mkdir(parents=True, exist_ok=True)
         script_path.write_text(_ps1_script(day), encoding="utf-8")
+        # Thin root wrapper for coach docs / habit: .\scripts\cpt_day_N.ps1
+        wrapper = resolve_path(f"scripts/cpt_day_{day}.ps1")
+        wrapper.write_text(
+            f"# Wrapper — CPT Dia {day}\n"
+            f'& "$PSScriptRoot\\training\\cpt_day_{day}.ps1" @args\n',
+            encoding="utf-8",
+        )
 
     progress = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -368,10 +375,11 @@ def _write_yaml(path: Path, cfg: dict[str, Any]) -> None:
 
 def _ps1_script(day: int) -> str:
     cfg_arg = f"friday-llm/configs/incremental/cpt_day_{day}.yaml"
+    # Lives under scripts/training/ → repo root is ../..
     return f"""# CPT incremental - Dia {day}
 # Docs primeiro; duracao flexivel (pode ser menos de 1h).
 $ErrorActionPreference = "Stop"
-Set-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
+Set-Location (Resolve-Path (Join-Path $PSScriptRoot "..\\.."))
 
 $env:TRANSFORMERS_NO_TF = "1"
 $env:USE_TF = "0"

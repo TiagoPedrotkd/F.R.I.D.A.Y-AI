@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { stateLabel } from '../state/machine'
 import { useAppStore } from '../state/store'
+import { AgendaPanel } from './AgendaPanel'
 import { ActivityTimeline } from './ActivityTimeline'
 import { AlertsBanner } from './AlertsBanner'
+import { CasaPanel } from './CasaPanel'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { ConnectionStatus } from './ConnectionStatus'
 import { ConversationPanel } from './ConversationPanel'
@@ -11,7 +13,9 @@ import { DemoBanner } from './DemoBanner'
 import { ErrorNotice } from './ErrorNotice'
 import { FridayCore } from './FridayCore'
 import { HudDateGauge, HudRingMeter } from './HudWidgets'
+import { MailPanel } from './MailPanel'
 import { QuickActions } from './QuickActions'
+import { SaudePanel } from './SaudePanel'
 import { SessionList } from './SessionList'
 import { SettingsPanel } from './SettingsPanel'
 import { SourceCard } from './SourceCard'
@@ -56,6 +60,14 @@ export function AppShell() {
   const bootstrap = useAppStore((s) => s.bootstrap)
   const settingsOpen = useAppStore((s) => s.settingsOpen)
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen)
+  const casaOpen = useAppStore((s) => s.casaOpen)
+  const setCasaOpen = useAppStore((s) => s.setCasaOpen)
+  const saudeOpen = useAppStore((s) => s.saudeOpen)
+  const setSaudeOpen = useAppStore((s) => s.setSaudeOpen)
+  const agendaOpen = useAppStore((s) => s.agendaOpen)
+  const setAgendaOpen = useAppStore((s) => s.setAgendaOpen)
+  const mailOpen = useAppStore((s) => s.mailOpen)
+  const setMailOpen = useAppStore((s) => s.setMailOpen)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const sources = useAppStore((s) => s.sources)
@@ -66,6 +78,7 @@ export function AppShell() {
   const demo = useAppStore((s) => s.demoForced || s.prefs.demoMode)
   const backendOk = useAppStore((s) => s.backendOk)
   const llmOk = useAppStore((s) => s.llmOk)
+  const haEnabled = useAppStore((s) => s.haEnabled)
   const state = useAppStore((s) => s.state)
   const lang = prefs.language
   const locale = prefs.language === 'en' ? 'en-GB' : 'pt-PT'
@@ -131,6 +144,20 @@ export function AppShell() {
           <ConnectionStatus />
           <button type="button" className="hud-btn md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? 'Fechar' : 'Data'}
+          </button>
+          {(prefs.homeAssistantEnabled || haEnabled) && (
+            <button type="button" className="hud-btn" onClick={() => setCasaOpen(true)}>
+              Casa
+            </button>
+          )}
+          <button type="button" className="hud-btn" onClick={() => setSaudeOpen(true)}>
+            Saúde
+          </button>
+          <button type="button" className="hud-btn hidden sm:inline-flex" onClick={() => setAgendaOpen(true)}>
+            Agenda
+          </button>
+          <button type="button" className="hud-btn hidden sm:inline-flex" onClick={() => setMailOpen(true)}>
+            Mail
           </button>
           <button type="button" className="hud-btn" onClick={() => setSettingsOpen(true)}>
             Config
@@ -233,6 +260,10 @@ export function AppShell() {
       </div>
 
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+      {casaOpen && <CasaPanel onClose={() => setCasaOpen(false)} />}
+      {saudeOpen && <SaudePanel onClose={() => setSaudeOpen(false)} />}
+      {agendaOpen && <AgendaPanel onClose={() => setAgendaOpen(false)} />}
+      {mailOpen && <MailPanel onClose={() => setMailOpen(false)} />}
       <ConfirmationDialog />
     </div>
   )

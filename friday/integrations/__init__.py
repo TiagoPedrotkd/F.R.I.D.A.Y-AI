@@ -29,6 +29,7 @@ def get_enabled_integrations(settings: Settings | None = None) -> dict[str, bool
                 "notion_export": bool(raw.get("notion_export", True)),
                 "strava_file": bool(raw.get("strava_file", True)),
                 "home_assistant": bool(raw.get("home_assistant", True)),
+                "google_health": bool(raw.get("google_health", True)),
             }
     except Exception:
         pass
@@ -38,6 +39,7 @@ def get_enabled_integrations(settings: Settings | None = None) -> dict[str, bool
         "notion_export": True,
         "strava_file": True,
         "home_assistant": True,
+        "google_health": True,
     }
 
 
@@ -71,20 +73,10 @@ def fetch_weather(lat: float = 38.72, lon: float = -9.14) -> dict[str, Any]:
 
 
 def read_health_summary(settings: Settings | None = None) -> dict[str, Any]:
-    root = integrations_root(settings)
-    path = root / "health" / "summary.json"
-    if not path.is_file():
-        return {
-            "ok": False,
-            "error": (
-                f"Sem dados de saude. Coloca um JSON em {path} "
-                "(ex. sleep_hours, hrv, steps) ou exporta do Apple Health/Fitbit."
-            ),
-        }
-    try:
-        return {"ok": True, "data": json.loads(path.read_text(encoding="utf-8")), "path": str(path)}
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"ok": False, "error": str(exc)}
+    from friday.integrations.google_health import read_day
+    from datetime import date
+
+    return read_day(date.today(), settings)
 
 
 def search_personal_notes(query: str, settings: Settings | None = None, limit: int = 5) -> dict[str, Any]:

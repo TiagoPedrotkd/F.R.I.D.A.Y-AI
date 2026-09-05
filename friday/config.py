@@ -160,6 +160,27 @@ class Settings(BaseSettings):
     frigate_enabled: bool = Field(default=False, alias="FRIGATE_ENABLED")
     frigate_url: str = Field(default="http://127.0.0.1:5000", alias="FRIGATE_URL")
 
+    # Fase 4 — Google (OAuth + Calendar / Gmail / Health)
+    google_enabled: bool = Field(default=False, alias="GOOGLE_ENABLED")
+    google_client_id: str = Field(default="", alias="GOOGLE_CLIENT_ID")
+    google_client_secret: str = Field(default="", alias="GOOGLE_CLIENT_SECRET")
+    google_redirect_uri: str = Field(
+        default="http://127.0.0.1:8090/v1/google/callback",
+        alias="GOOGLE_REDIRECT_URI",
+    )
+    google_token_path: Path = Field(
+        default=_REPO_ROOT / "data" / "secrets" / "google_tokens.json",
+        alias="GOOGLE_TOKEN_PATH",
+    )
+    # Fitbit Web API (legacy bridge até Google Health; opcional)
+    fitbit_enabled: bool = Field(default=False, alias="FITBIT_ENABLED")
+    fitbit_client_id: str = Field(default="", alias="FITBIT_CLIENT_ID")
+    fitbit_client_secret: str = Field(default="", alias="FITBIT_CLIENT_SECRET")
+    fitbit_token_path: Path = Field(
+        default=_REPO_ROOT / "data" / "secrets" / "fitbit_tokens.json",
+        alias="FITBIT_TOKEN_PATH",
+    )
+
     # User-facing error messages (Portuguese)
     error_network_pt: str = Field(
         default="Nao consegui ligar ao modelo. Tenta outra vez.",
@@ -194,6 +215,8 @@ class Settings(BaseSettings):
             "rag_corpus_path",
             "rag_index_dir",
             "models_dir",
+            "google_token_path",
+            "fitbit_token_path",
         )
         for name in path_fields:
             value = getattr(self, name, None)

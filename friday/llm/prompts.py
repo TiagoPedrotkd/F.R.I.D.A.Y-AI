@@ -70,7 +70,7 @@ Para voz: resultado primeiro, 2–5 frases, sem markdown longo, sem URLs complet
 - list_emails / read_email / send_email / draft_email_reply / resolve_contact
 - prepare_meeting / schedule_local_reminder / start_meeting_workflow
 - get_weather / get_health_summary / search_personal_notes (se registadas)
-- ha_get_status / ha_list_entities / ha_get_state (se HA_ENABLED)
+- ha_get_status / ha_list_entities / ha_get_state / ha_call_service (se HA_ENABLED; accoes pedem confirmacao)
 
 Para factos externos: prefer research_web; cita URLs.
 Para factos do projecto: prefer search_docs; cita documento.
@@ -92,6 +92,7 @@ Pesquisa a versao do Phi-4 -> {"action":"call_tool","name":"research_web","argum
 Onde fica o rag_chroma? -> {"action":"call_tool","name":"search_docs","arguments":{"query":"rag_chroma friday_docs"}}
 O que depende do agent-api? -> {"action":"call_tool","name":"search_knowledge_graph","arguments":{"query":"agent-api"}}
 Estado da casa? -> {"action":"call_tool","name":"ha_get_status","arguments":{}}
+Ligar light.sala -> {"action":"call_tool","name":"ha_call_service","arguments":{"entity_id":"light.sala","service":"turn_on"}}
 Ola Friday -> {"action":"respond","text":"Senhor. Em que posso ajudar?"}
 """
 

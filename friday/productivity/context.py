@@ -121,29 +121,22 @@ def build_productivity_context(
         is_working = 9 <= now.hour < 18
 
     upcoming: list[dict[str, Any]] = []
-    if settings.caldav_enabled and settings.caldav_url:
-        try:
-            from friday.productivity.caldav_client import list_events
+    try:
+        from friday.productivity.calendar_provider import calendar_available, list_events
 
-            raw = list_events(
-                url=settings.caldav_url,
-                username=settings.caldav_user,
-                password=settings.caldav_password,
-                days=2,
-                timezone_name=tz_name,
-            )
+        if calendar_available(settings):
+            raw = list_events(settings, days=2, timezone_name=tz_name)
             for ev in raw[:12]:
                 upcoming.append(_meeting_payload(ev, now, tz))
-        except Exception as exc:
-            logger.debug("context calendar skipped: %s", exc)
+    except Exception as exc:
+        logger.debug("context calendar skipped: %s", exc)
 
     pending_emails: list[dict[str, Any]] = []
-    if settings.email_enabled and settings.imap_host:
-        try:
-            from friday.productivity.email_client import EmailSettings, list_emails
-            from friday.skills.local.email_skills import _email_cfg
+    try:
+        from friday.productivity.email_provider import email_available, list_emails
 
-            items = list_emails(_email_cfg(settings), limit=8)
+        if email_available(settings):
+            items = list_emails(settings, limit=8)
             for m in items:
                 days = 0.0
                 try:
@@ -165,8 +158,8 @@ def build_productivity_context(
                         "unread": True,
                     }
                 )
-        except Exception as exc:
-            logger.debug("context email skipped: %s", exc)
+    except Exception as exc:
+        logger.debug("context email skipped: %s", exc)
 
     payload = {
         "current_time": now.isoformat(timespec="seconds"),

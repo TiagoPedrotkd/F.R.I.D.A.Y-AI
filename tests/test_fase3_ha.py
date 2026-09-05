@@ -1,4 +1,4 @@
-"""Fase 3.0 — Home Assistant client + skills (mocked HTTP)."""
+"""Fase 3 — Home Assistant client + skills (mocked HTTP)."""
 
 from __future__ import annotations
 
@@ -11,20 +11,27 @@ import pytest
 from friday.config import Settings
 from friday.integrations.home_assistant import (
     HomeAssistantError,
+    call_service,
     get_state,
     get_status,
+    list_energy_sensors,
     list_states,
 )
 from friday.llm.intent_router import match_skill, match_skill_with_args
-from friday.skills.local.ha_skills import HaGetStatusSkill, HaListEntitiesSkill
+from friday.safety.confirmation import GATED_SKILLS
+from friday.skills.local.ha_skills import (
+    HaCallServiceSkill,
+    HaGetStatusSkill,
+    HaListEntitiesSkill,
+)
 from friday.skills.registry import default_registry
 
 
 def _ha_settings(**kwargs) -> Settings:
     base = {
-        "ha_enabled": True,
-        "ha_url": "http://127.0.0.1:8123",
-        "ha_token": "test-token",
+        "HA_ENABLED": True,
+        "HA_URL": "http://127.0.0.1:8123",
+        "HA_TOKEN": "test-token",
     }
     base.update(kwargs)
     return Settings(**base)
@@ -43,16 +50,22 @@ def test_intent_ha_list_lights():
 
 
 def test_ha_skills_registered_when_enabled():
-    reg = default_registry(Settings(ha_enabled=True))
+    reg = default_registry(_ha_settings())
     assert "ha_get_status" in reg.names()
     assert "get_home_status" in reg.names()
     assert "ha_list_entities" in reg.names()
     assert "ha_get_state" in reg.names()
+    assert "ha_call_service" in reg.names()
+
+
+def test_ha_call_service_is_gated():
+    assert "ha_call_service" in GATED_SKILLS
 
 
 def test_ha_skills_not_registered_when_disabled():
-    reg = default_registry(Settings(ha_enabled=False))
+    reg = default_registry(_ha_settings(HA_ENABLED=False))
     assert "ha_get_status" not in reg.names()
+    assert "ha_call_service" not in reg.names()
 
 
 def test_get_status_mock():
@@ -67,13 +80,17 @@ def test_get_status_mock():
     assert out["ok"] is True
 
 
-def test_list_states_domain_filter():
+def test_list_states_domain_filter_and_attrs():
     settings = _ha_settings()
     payload = [
         {
             "entity_id": "light.sala",
             "state": "on",
-            "attributes": {"friendly_name": "Sala"},
+            "attributes": {
+                "friendly_name": "Sala",
+                "brightness": 200,
+                "supported_color_modes": ["brightness"],
+            },
         },
         {"entity_id": "sensor.temp", "state": "21", "attributes": {}},
     ]
@@ -86,6 +103,57 @@ def test_list_states_domain_filter():
     assert out["ok"]
     assert out["count"] == 1
     assert out["entities"][0]["entity_id"] == "light.sala"
+    assert out["entities"][0]["brightness"] == 200
+
+
+def test_list_energy_sensors():
+    settings = _ha_settings()
+    payload = [
+        {
+            "entity_id": "sensor.grid_power",
+            "state": "420",
+            "attributes": {"device_class": "power", "unit_of_measurement": "W"},
+        },
+        {
+            "entity_id": "sensor.temp",
+            "state": "21",
+            "attributes": {"device_class": "temperature", "unit_of_measurement": "°C"},
+        },
+        {
+            "entity_id": "sensor.energy_today",
+            "state": "3.2",
+            "attributes": {"unit_of_measurement": "kWh"},
+        },
+    ]
+    fake = MagicMock()
+    fake.read.return_value = json.dumps(payload).encode()
+    fake.__enter__ = MagicMock(return_value=fake)
+    fake.__exit__ = MagicMock(return_value=False)
+    with patch("urllib.request.urlopen", return_value=fake):
+        out = list_energy_sensors(settings)
+    assert out["ok"]
+    ids = {e["entity_id"] for e in out["entities"]}
+    assert ids == {"sensor.grid_power", "sensor.energy_today"}
+
+
+def test_call_service_mock():
+    settings = _ha_settings()
+    fake = MagicMock()
+    fake.read.return_value = b"[]"
+    fake.__enter__ = MagicMock(return_value=fake)
+    fake.__exit__ = MagicMock(return_value=False)
+    fake.status = 200
+    with patch("urllib.request.urlopen", return_value=fake) as urlopen:
+        out = call_service("light", "turn_on", "light.sala", settings=settings)
+    assert out["ok"]
+    req = urlopen.call_args[0][0]
+    assert req.full_url.endswith("/api/services/light/turn_on")
+    assert req.get_method() == "POST"
+
+
+def test_call_service_rejects_bad_service():
+    with pytest.raises(HomeAssistantError):
+        call_service("light", "hack", "light.sala", settings=_ha_settings())
 
 
 def test_get_state_mock():
@@ -107,7 +175,7 @@ def test_get_state_mock():
 
 @pytest.mark.asyncio
 async def test_ha_get_status_skill_disabled():
-    skill = HaGetStatusSkill(Settings(ha_enabled=False))
+    skill = HaGetStatusSkill(_ha_settings(HA_ENABLED=False))
     result = await skill.execute({})
     assert result.success is False
 
@@ -127,9 +195,33 @@ async def test_ha_list_skill_ok():
     assert "light.a" in result.content
 
 
+@pytest.mark.asyncio
+async def test_ha_call_service_requires_confirmation():
+    skill = HaCallServiceSkill(_ha_settings())
+    result = await skill.execute({"entity_id": "light.sala", "service": "turn_on"})
+    assert result.success
+    assert result.metadata["kind"] == "confirmation_required"
+    assert result.metadata["pending"]["action"] == "ha_call_service"
+
+
+@pytest.mark.asyncio
+async def test_ha_call_service_confirmed():
+    skill = HaCallServiceSkill(_ha_settings())
+    fake = MagicMock()
+    fake.read.return_value = b"[]"
+    fake.__enter__ = MagicMock(return_value=fake)
+    fake.__exit__ = MagicMock(return_value=False)
+    with patch("urllib.request.urlopen", return_value=fake):
+        result = await skill.execute(
+            {"entity_id": "light.sala", "service": "turn_on", "confirmed": True}
+        )
+    assert result.success
+    assert "Feito" in result.content
+
+
 def test_ha_disabled_raises():
     with pytest.raises(HomeAssistantError):
-        get_status(Settings(ha_enabled=False))
+        get_status(_ha_settings(HA_ENABLED=False))
 
 
 def test_compose_has_profiles():

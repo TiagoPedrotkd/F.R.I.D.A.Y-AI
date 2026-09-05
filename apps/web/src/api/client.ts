@@ -68,7 +68,32 @@ export type StatusResponse = {
   backend: boolean
   demo: boolean
   llm: { ok: boolean; model?: string; error?: string | null }
+  ha?: { enabled: boolean; ok?: boolean | null; url?: string | null }
+  google?: { enabled: boolean; configured?: boolean }
   auto_open_monitors?: boolean
+}
+
+export type HaEntity = {
+  entity_id: string
+  state?: string | null
+  friendly_name?: string | null
+  device_class?: string | null
+  unit_of_measurement?: string | null
+  brightness?: number | null
+}
+
+export type HaStatusResponse = {
+  ok: boolean
+  api?: unknown
+  url?: string
+}
+
+export type HaEntitiesResponse = {
+  ok: boolean
+  count: number
+  entities: HaEntity[]
+  domain?: string | null
+  error?: string
 }
 
 function withTimeout(ms: number): AbortSignal {
@@ -261,6 +286,138 @@ export async function confirm(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: sessionId, decision }),
       signal: withTimeout(15000),
+    }),
+  )
+}
+
+export async function fetchHaStatus(): Promise<HaStatusResponse> {
+  return json(await fetch(apiUrl('/v1/ha/status'), { signal: withTimeout(10000) }))
+}
+
+export async function fetchHaEntities(domain?: string, limit = 200): Promise<HaEntitiesResponse> {
+  const q = new URLSearchParams()
+  if (domain) q.set('domain', domain)
+  q.set('limit', String(limit))
+  return json(await fetch(apiUrl(`/v1/ha/entities?${q}`), { signal: withTimeout(15000) }))
+}
+
+export async function fetchHaEnergy(limit = 80): Promise<HaEntitiesResponse> {
+  const q = new URLSearchParams({ limit: String(limit) })
+  return json(await fetch(apiUrl(`/v1/ha/energy?${q}`), { signal: withTimeout(15000) }))
+}
+
+export async function requestHaAction(
+  sessionId: string,
+  entityId: string,
+  service: 'turn_on' | 'turn_off' | 'toggle',
+): Promise<{ ok: boolean; reply: string; pending_confirmation: PendingConfirmation }> {
+  return json(
+    await fetch(apiUrl('/v1/ha/action'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        entity_id: entityId,
+        service,
+      }),
+      signal: withTimeout(15000),
+    }),
+  )
+}
+
+export type GoogleStatus = {
+  enabled: boolean
+  configured: boolean
+  connected: boolean
+  has_refresh_token?: boolean
+  redirect_uri?: string
+}
+
+export type HealthDay = {
+  date?: string
+  steps?: number | null
+  sleep_hours?: number | null
+  resting_hr?: number | null
+  hrv?: number | null
+  active_minutes?: number | null
+  source?: string
+  synced_at?: string | null
+}
+
+export async function fetchGoogleStatus(): Promise<GoogleStatus> {
+  return json(await fetch(apiUrl('/v1/google/status'), { signal: withTimeout(8000) }))
+}
+
+export async function fetchGoogleAuthUrl(): Promise<{ url: string; state: string }> {
+  return json(await fetch(apiUrl('/v1/google/auth-url'), { signal: withTimeout(8000) }))
+}
+
+export async function disconnectGoogle(): Promise<{ ok: boolean }> {
+  return json(
+    await fetch(apiUrl('/v1/google/disconnect'), {
+      method: 'POST',
+      signal: withTimeout(8000),
+    }),
+  )
+}
+
+export async function fetchHealthStatus(): Promise<{
+  ok: boolean
+  google_connected?: boolean
+  cache_ok?: boolean
+  summary?: HealthDay | null
+  error?: string | null
+}> {
+  return json(await fetch(apiUrl('/v1/health/status'), { signal: withTimeout(10000) }))
+}
+
+export async function fetchHealthDays(limit = 14): Promise<{
+  ok: boolean
+  days: HealthDay[]
+}> {
+  return json(
+    await fetch(apiUrl(`/v1/health/days?limit=${limit}`), { signal: withTimeout(10000) }),
+  )
+}
+
+export async function syncHealth(days = 7): Promise<{ ok: boolean; synced?: number; errors?: string[] }> {
+  return json(
+    await fetch(apiUrl(`/v1/health/sync?days=${days}`), {
+      method: 'POST',
+      signal: withTimeout(60000),
+    }),
+  )
+}
+
+export async function fetchAgendaEvents(days = 7): Promise<{
+  ok: boolean
+  events: { uid?: string; summary?: string; start?: string; end?: string }[]
+}> {
+  return json(
+    await fetch(apiUrl(`/v1/agenda/events?days=${days}`), { signal: withTimeout(20000) }),
+  )
+}
+
+export async function fetchMailMessages(limit = 15): Promise<{
+  ok: boolean
+  messages: { id: string; subject?: string; from?: string; date?: string }[]
+}> {
+  return json(
+    await fetch(apiUrl(`/v1/mail/messages?limit=${limit}`), { signal: withTimeout(30000) }),
+  )
+}
+
+export async function fetchMailMessage(id: string): Promise<{
+  id: string
+  subject?: string
+  from?: string
+  to?: string
+  date?: string
+  body?: string
+}> {
+  return json(
+    await fetch(apiUrl(`/v1/mail/messages/${encodeURIComponent(id)}`), {
+      signal: withTimeout(20000),
     }),
   )
 }

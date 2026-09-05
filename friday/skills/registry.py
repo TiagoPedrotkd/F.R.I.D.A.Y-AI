@@ -84,6 +84,7 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     from friday.skills.local.system_info import SystemInfoSkill
     from friday.skills.local.word_count import WordCountSkill
     from friday.skills.local.integration_skills import (
+        GetHealthDaySkill,
         GetHealthSummarySkill,
         GetWeatherSkill,
         SearchPersonalNotesSkill,
@@ -131,9 +132,11 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     registry.register(PrepareMeetingSkill(settings=settings))
     registry.register(GetWeatherSkill(settings=settings))
     registry.register(GetHealthSummarySkill(settings=settings))
+    registry.register(GetHealthDaySkill(settings=settings))
     registry.register(SearchPersonalNotesSkill(settings=settings))
     if getattr(settings, "ha_enabled", False):
         from friday.skills.local.ha_skills import (
+            HaCallServiceSkill,
             HaGetStateSkill,
             HaGetStatusSkill,
             HaListEntitiesSkill,
@@ -142,6 +145,7 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
         registry.register(HaGetStatusSkill(settings=settings), aliases=["get_home_status"])
         registry.register(HaListEntitiesSkill(settings=settings))
         registry.register(HaGetStateSkill(settings=settings))
+        registry.register(HaCallServiceSkill(settings=settings))
     registry.register(
         SearchWebSkill(max_results_default=settings.web_search_max_results)
     )

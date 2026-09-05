@@ -139,3 +139,88 @@ def test_monitor_serves_world_html(client: TestClient):
 def test_chat_unknown_session(client: TestClient):
     r = client.post("/v1/chat", json={"session_id": "missing", "text": "ola"})
     assert r.status_code == 404
+
+
+def test_ha_status_disabled(client: TestClient):
+    with patch("friday.config.get_settings") as gs:
+        settings = MagicMock()
+        settings.ha_enabled = False
+        gs.return_value = settings
+        # Also patch the module-level get_settings used by main
+        with patch.object(agent_main, "get_settings", return_value=settings):
+            r = client.get("/v1/ha/status")
+    assert r.status_code == 503
+
+
+def test_ha_action_and_confirm(client: TestClient):
+    sid = client.post("/v1/sessions").json()["id"]
+    settings = MagicMock()
+    settings.ha_enabled = True
+    settings.ha_url = "http://127.0.0.1:8123"
+    settings.ha_token = "t"
+    settings.prefs_dir = Path("data/prefs")
+
+    with (
+        patch.object(agent_main, "get_settings", return_value=settings),
+        patch(
+            "friday.integrations.get_enabled_integrations",
+            return_value={"home_assistant": True},
+        ),
+    ):
+        r = client.post(
+            "/v1/ha/action",
+            json={
+                "session_id": sid,
+                "entity_id": "light.sala",
+                "service": "turn_on",
+            },
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["pending_confirmation"]["action"] == "ha_call_service"
+    assert body["pending_confirmation"]["target"] == "light.sala"
+
+    session = store.get(sid)
+    assert session is not None
+    assert session.gate.pending is not None
+    assert session.gate.pending.payload.get("entity_id") == "light.sala"
+
+    with patch(
+        "session_store.default_registry"
+    ) as reg:
+        skill_result = MagicMock()
+        skill_result.success = True
+        skill_result.content = "Feito: ligar light.sala."
+        skill_result.error = None
+        skill_result.metadata = {"kind": "ha"}
+        reg.return_value.execute = AsyncMock(return_value=skill_result)
+        conf = client.post(
+            "/v1/confirm",
+            json={"session_id": sid, "decision": "confirm"},
+        )
+    assert conf.status_code == 200
+    assert conf.json()["decision"] == "confirmed"
+
+
+def test_status_includes_ha_block(client: TestClient):
+    with patch.object(
+        agent_main,
+        "_probe_llm",
+        new=AsyncMock(return_value={"ok": True, "via": "lm_studio", "model": "x", "error": None}),
+    ):
+        settings = MagicMock()
+        settings.ha_enabled = False
+        settings.ha_url = "http://127.0.0.1:8123"
+        settings.google_enabled = False
+        settings.google_client_id = ""
+        settings.google_client_secret = ""
+        settings.auto_open_monitors = False
+        settings.web_source_required = False
+        settings.llm_fallback_base_url = ""
+        with patch.object(agent_main, "get_settings", return_value=settings):
+            r = client.get("/v1/status")
+    assert r.status_code == 200
+    ha = r.json().get("ha")
+    assert ha is not None
+    assert ha["enabled"] is False
+    assert "google" in r.json()

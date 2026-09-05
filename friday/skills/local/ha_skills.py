@@ -1,4 +1,4 @@
-"""Home Assistant skills — Fase 3.0 read-only."""
+"""Home Assistant skills — Fase 3.0 read-only + 3.1 ha_call_service (gated)."""
 
 from __future__ import annotations
 
@@ -7,17 +7,37 @@ from typing import Any
 from friday.config import Settings, get_settings
 from friday.integrations import get_enabled_integrations
 from friday.integrations.home_assistant import (
+    ALLOWED_SERVICES,
     HomeAssistantError,
+    call_service,
+    domain_from_entity_id,
     get_state,
     get_status,
     list_states,
 )
 from friday.skills.base import SkillResult
+from friday.skills.gated import confirmation_required_result, is_confirmed
 
 
 def _ha_pref_ok(settings: Settings) -> bool:
     enabled = get_enabled_integrations(settings)
     return bool(enabled.get("home_assistant", True))
+
+
+def _guard(settings: Settings) -> SkillResult | None:
+    if not settings.ha_enabled:
+        return SkillResult(
+            success=False,
+            content="",
+            error="Home Assistant desactivado (HA_ENABLED=false no .env).",
+        )
+    if not _ha_pref_ok(settings):
+        return SkillResult(
+            success=False,
+            content="",
+            error="Integracao home_assistant desactivada nas preferencias.",
+        )
+    return None
 
 
 class HaGetStatusSkill:
@@ -32,18 +52,9 @@ class HaGetStatusSkill:
         self._settings = settings or get_settings()
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
-        if not self._settings.ha_enabled:
-            return SkillResult(
-                success=False,
-                content="",
-                error="Home Assistant desactivado (HA_ENABLED=false no .env).",
-            )
-        if not _ha_pref_ok(self._settings):
-            return SkillResult(
-                success=False,
-                content="",
-                error="Integracao home_assistant desactivada nas preferencias.",
-            )
+        blocked = _guard(self._settings)
+        if blocked:
+            return blocked
         try:
             data = get_status(self._settings)
         except HomeAssistantError as exc:
@@ -73,12 +84,9 @@ class HaListEntitiesSkill:
         self._settings = settings or get_settings()
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
-        if not self._settings.ha_enabled or not _ha_pref_ok(self._settings):
-            return SkillResult(
-                success=False,
-                content="",
-                error="Home Assistant indisponivel ou desactivado.",
-            )
+        blocked = _guard(self._settings)
+        if blocked:
+            return blocked
         domain = arguments.get("domain")
         limit = int(arguments.get("limit") or 30)
         try:
@@ -113,12 +121,9 @@ class HaGetStateSkill:
         self._settings = settings or get_settings()
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
-        if not self._settings.ha_enabled or not _ha_pref_ok(self._settings):
-            return SkillResult(
-                success=False,
-                content="",
-                error="Home Assistant indisponivel ou desactivado.",
-            )
+        blocked = _guard(self._settings)
+        if blocked:
+            return blocked
         eid = (arguments.get("entity_id") or "").strip()
         if not eid:
             return SkillResult(success=False, content="", error="entity_id obrigatorio.")
@@ -132,5 +137,96 @@ class HaGetStateSkill:
         return SkillResult(
             success=True,
             content=f"{name} ({data.get('entity_id')}): {data.get('state')}",
+            metadata={"kind": "ha", "data": data},
+        )
+
+
+class HaCallServiceSkill:
+    name = "ha_call_service"
+    description = (
+        "Liga, desliga ou faz toggle de uma entidade HA (light/switch). "
+        "Requer confirmacao. Args: entity_id, service (turn_on|turn_off|toggle)."
+    )
+    parameters: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "entity_id": {
+                "type": "string",
+                "description": "ex. light.sala ou switch.tomada",
+            },
+            "service": {
+                "type": "string",
+                "description": "turn_on | turn_off | toggle",
+            },
+            "domain": {
+                "type": "string",
+                "description": "Opcional; inferido de entity_id se omitido",
+            },
+            "confirmed": {"type": "boolean"},
+        },
+        "required": ["entity_id", "service"],
+    }
+
+    def __init__(self, settings: Settings | None = None) -> None:
+        self._settings = settings or get_settings()
+
+    async def execute(self, arguments: dict[str, Any]) -> SkillResult:
+        blocked = _guard(self._settings)
+        if blocked:
+            return blocked
+        eid = (arguments.get("entity_id") or "").strip()
+        service = (arguments.get("service") or "").strip().casefold()
+        domain = (arguments.get("domain") or "").strip().casefold() or domain_from_entity_id(
+            eid
+        )
+        if not eid:
+            return SkillResult(success=False, content="", error="entity_id obrigatorio.")
+        if service not in ALLOWED_SERVICES:
+            return SkillResult(
+                success=False,
+                content="",
+                error=f"service invalido: {service}. Use turn_on, turn_off ou toggle.",
+            )
+        if not domain:
+            return SkillResult(
+                success=False,
+                content="",
+                error="domain em falta (entity_id deve ser domain.name).",
+            )
+        if domain not in {"light", "switch", "fan", "input_boolean", "media_player"}:
+            return SkillResult(
+                success=False,
+                content="",
+                error=f"Dominio nao permitido para accoes UI/chat: {domain}.",
+            )
+
+        labels = {
+            "turn_on": "ligar",
+            "turn_off": "desligar",
+            "toggle": "alternar",
+        }
+        summary = f"{labels.get(service, service)} {eid}"
+        payload = {
+            "entity_id": eid,
+            "service": service,
+            "domain": domain,
+        }
+        if not is_confirmed(arguments):
+            return confirmation_required_result(
+                action="ha_call_service",
+                target=eid,
+                summary=summary,
+                consequences="Altera o estado do dispositivo no Home Assistant.",
+                payload=payload,
+                preview={"entity_id": eid, "service": service, "domain": domain},
+            )
+
+        try:
+            data = call_service(domain, service, eid, settings=self._settings)
+        except HomeAssistantError as exc:
+            return SkillResult(success=False, content="", error=str(exc))
+        return SkillResult(
+            success=True,
+            content=f"Feito: {summary}.",
             metadata={"kind": "ha", "data": data},
         )

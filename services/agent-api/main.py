@@ -155,6 +155,13 @@ class ConfirmRequest(BaseModel):
     consequences: str | None = None
 
 
+class HaActionRequest(BaseModel):
+    session_id: str
+    entity_id: str = Field(min_length=1, max_length=128)
+    service: Literal["turn_on", "turn_off", "toggle"]
+    domain: str | None = None
+
+
 class TtsRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     session_id: str | None = None
@@ -330,6 +337,20 @@ async def status():
     llm = await _probe_llm()
     demo = not llm["ok"]
     settings = get_settings()
+    ha_block: dict[str, Any] = {
+        "enabled": bool(settings.ha_enabled),
+        "ok": None,
+        "url": settings.ha_url if settings.ha_enabled else None,
+    }
+    if settings.ha_enabled:
+        try:
+            from friday.integrations.home_assistant import get_status as ha_get_status
+
+            ha_get_status(settings)
+            ha_block["ok"] = True
+        except Exception as exc:
+            logger.debug("HA probe failed: %s", exc)
+            ha_block["ok"] = False
     return {
         "status": "ok" if llm["ok"] else "degraded",
         "service": SERVICE_NAME,
@@ -337,6 +358,15 @@ async def status():
         "backend": True,
         "llm": llm,
         "demo": demo,
+        "ha": ha_block,
+        "google": {
+            "enabled": bool(settings.google_enabled),
+            "configured": bool(
+                settings.google_enabled
+                and (settings.google_client_id or "").strip()
+                and (settings.google_client_secret or "").strip()
+            ),
+        },
         "auto_open_monitors": settings.auto_open_monitors,
         "web_source_required": settings.web_source_required,
         "fallback_configured": bool(settings.llm_fallback_base_url),
@@ -596,6 +626,236 @@ async def put_prefs(body: PrefsUpdate, user_id: str = "default"):
         patch["productivity_patterns"] = merged
     prefs = store.update(patch, user_id=user_id)
     return {"user_id": user_id, "prefs": prefs}
+
+
+def _require_ha() -> Any:
+    """Return settings or raise HTTPException if HA is off / pref disabled."""
+    from friday.integrations import get_enabled_integrations
+
+    settings = get_settings()
+    if not settings.ha_enabled:
+        raise HTTPException(
+            503,
+            "Home Assistant desactivado (HA_ENABLED=false).",
+        )
+    if not get_enabled_integrations(settings).get("home_assistant", True):
+        raise HTTPException(403, "Integracao home_assistant desactivada nas preferencias.")
+    return settings
+
+
+@app.get("/v1/ha/status")
+async def ha_status():
+    from friday.integrations.home_assistant import HomeAssistantError, get_status
+
+    settings = _require_ha()
+    try:
+        data = get_status(settings)
+    except HomeAssistantError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return data
+
+
+@app.get("/v1/ha/entities")
+async def ha_entities(domain: str | None = None, limit: int = 200):
+    from friday.integrations.home_assistant import HomeAssistantError, list_states
+
+    settings = _require_ha()
+    try:
+        return list_states(settings, domain=domain, limit=max(1, min(limit, 500)))
+    except HomeAssistantError as exc:
+        raise HTTPException(502, str(exc)) from exc
+
+
+@app.get("/v1/ha/energy")
+async def ha_energy(limit: int = 80):
+    from friday.integrations.home_assistant import HomeAssistantError, list_energy_sensors
+
+    settings = _require_ha()
+    try:
+        return list_energy_sensors(settings, limit=max(1, min(limit, 200)))
+    except HomeAssistantError as exc:
+        raise HTTPException(502, str(exc)) from exc
+
+
+@app.post("/v1/ha/action")
+async def ha_action(body: HaActionRequest):
+    from friday.integrations.home_assistant import (
+        ALLOWED_SERVICES,
+        domain_from_entity_id,
+    )
+
+    settings = _require_ha()
+    session = store.get(body.session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    if session.gate.pending is not None:
+        raise HTTPException(409, "Ja existe uma confirmacao pendente.")
+
+    eid = body.entity_id.strip()
+    service = body.service
+    domain = (body.domain or "").strip().casefold() or domain_from_entity_id(eid)
+    if not domain:
+        raise HTTPException(400, "entity_id invalido (esperado domain.name).")
+    if domain not in {"light", "switch", "fan", "input_boolean", "media_player"}:
+        raise HTTPException(400, f"Dominio nao permitido: {domain}")
+    if service not in ALLOWED_SERVICES:
+        raise HTTPException(400, f"Servico nao permitido: {service}")
+
+    labels = {"turn_on": "ligar", "turn_off": "desligar", "toggle": "alternar"}
+    summary = f"{labels.get(service, service)} {eid}"
+    payload = {"entity_id": eid, "service": service, "domain": domain}
+    pending = PendingAction(
+        action="ha_call_service",
+        target=eid,
+        summary=summary,
+        consequences="Altera o estado do dispositivo no Home Assistant.",
+        payload=payload,
+        preview={"entity_id": eid, "service": service, "domain": domain},
+    )
+    msg = session.gate.request(pending)
+    await session.emit("state", {"state": "awaiting_confirmation"})
+    return {
+        "ok": True,
+        "reply": msg,
+        "pending_confirmation": {
+            "action": pending.action,
+            "target": pending.target,
+            "summary": pending.summary,
+            "consequences": pending.consequences,
+            "preview": pending.preview,
+        },
+        "ha_enabled": settings.ha_enabled,
+    }
+
+
+@app.get("/v1/google/status")
+async def google_status():
+    from friday.integrations.google_oauth import status as gstatus
+
+    return gstatus(get_settings())
+
+
+@app.get("/v1/google/auth-url")
+async def google_auth_url():
+    from friday.integrations.google_oauth import GoogleOAuthError, build_auth_url
+
+    try:
+        return build_auth_url(get_settings())
+    except GoogleOAuthError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/v1/google/callback")
+async def google_callback(code: str = "", state: str = ""):
+    from friday.integrations.google_oauth import GoogleOAuthError, exchange_code
+
+    if not code:
+        raise HTTPException(400, "code em falta")
+    try:
+        exchange_code(code, get_settings())
+    except GoogleOAuthError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    # Simple HTML so browser OAuth redirect works
+    html = (
+        "<!doctype html><html><body style='font-family:sans-serif;background:#0b1220;color:#5cefff;"
+        "display:flex;align-items:center;justify-content:center;height:100vh'>"
+        "<div><h1>Google ligado</h1><p>Podes fechar esta janela e voltar à FRIDAY.</p></div>"
+        "</body></html>"
+    )
+    return Response(content=html, media_type="text/html")
+
+
+@app.post("/v1/google/disconnect")
+async def google_disconnect():
+    from friday.integrations.google_oauth import clear_tokens
+
+    clear_tokens(get_settings())
+    return {"ok": True, "connected": False}
+
+
+@app.get("/v1/health/status")
+async def health_status_api():
+    from friday.integrations.google_health import health_status
+
+    return health_status(get_settings())
+
+
+@app.get("/v1/health/summary")
+async def health_summary_api():
+    from friday.integrations.google_health import read_day
+    from datetime import date
+
+    return read_day(date.today(), get_settings())
+
+
+@app.get("/v1/health/days")
+async def health_days_api(limit: int = 14):
+    from friday.integrations.google_health import list_days
+
+    return list_days(get_settings(), limit=max(1, min(limit, 60)))
+
+
+@app.post("/v1/health/sync")
+async def health_sync_api(days: int = 7):
+    from friday.integrations.google_health import HealthSyncError, sync_health
+
+    try:
+        return sync_health(get_settings(), days=max(1, min(days, 30)))
+    except HealthSyncError as exc:
+        raise HTTPException(502, str(exc)) from exc
+
+
+@app.get("/v1/agenda/events")
+async def agenda_events(days: int = 7):
+    from friday.productivity.calendar_provider import (
+        CalendarProviderError,
+        calendar_available,
+        list_events,
+    )
+
+    settings = get_settings()
+    if not calendar_available(settings):
+        raise HTTPException(503, "Calendario nao configurado (Google ou CalDAV).")
+    try:
+        events = list_events(settings, days=max(1, min(days, 60)))
+    except CalendarProviderError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return {"ok": True, "count": len(events), "events": events}
+
+
+@app.get("/v1/mail/messages")
+async def mail_messages(limit: int = 15):
+    from friday.productivity.email_provider import (
+        EmailProviderError,
+        email_available,
+        list_emails,
+    )
+
+    settings = get_settings()
+    if not email_available(settings):
+        raise HTTPException(503, "Email nao configurado (Google ou IMAP).")
+    try:
+        messages = list_emails(settings, limit=max(1, min(limit, 50)))
+    except EmailProviderError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return {"ok": True, "count": len(messages), "messages": messages}
+
+
+@app.get("/v1/mail/messages/{message_id}")
+async def mail_message(message_id: str):
+    from friday.productivity.email_provider import (
+        EmailProviderError,
+        email_available,
+        read_email,
+    )
+
+    settings = get_settings()
+    if not email_available(settings):
+        raise HTTPException(503, "Email nao configurado (Google ou IMAP).")
+    try:
+        return read_email(settings, message_id=message_id)
+    except EmailProviderError as exc:
+        raise HTTPException(502, str(exc)) from exc
 
 
 @app.post("/v1/confirm")

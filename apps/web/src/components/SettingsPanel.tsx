@@ -1,5 +1,65 @@
+import { useEffect, useState } from 'react'
 import { useAppStore } from '../state/store'
 import type { Prefs } from '../demo/fixtures'
+import * as api from '../api/client'
+
+function GoogleConnectBlock() {
+  const googleEnabled = useAppStore((s) => s.googleEnabled)
+  const googleConfigured = useAppStore((s) => s.googleConfigured)
+  const connectGoogle = useAppStore((s) => s.connectGoogle)
+  const disconnectGoogle = useAppStore((s) => s.disconnectGoogle)
+  const [connected, setConnected] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    void api
+      .fetchGoogleStatus()
+      .then((s) => setConnected(Boolean(s.connected)))
+      .catch(() => setConnected(false))
+  }, [googleEnabled, googleConfigured])
+
+  if (!googleEnabled) {
+    return (
+      <p className="text-xs text-[var(--text-muted)]">
+        Google desactivado (`GOOGLE_ENABLED=false` no .env).
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-2 border-b border-cyan/10 py-2">
+      <p className="text-[var(--text-muted)]">
+        Google: {connected ? 'ligado' : googleConfigured ? 'não ligado' : 'sem Client ID'}
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className="hud-btn text-xs"
+          disabled={busy || !googleConfigured}
+          onClick={() => {
+            setBusy(true)
+            void connectGoogle().finally(() => setBusy(false))
+          }}
+        >
+          Conectar Google
+        </button>
+        <button
+          type="button"
+          className="hud-btn text-xs"
+          disabled={busy || !connected}
+          onClick={() => {
+            setBusy(true)
+            void disconnectGoogle()
+              .then(() => setConnected(false))
+              .finally(() => setBusy(false))
+          }}
+        >
+          Desligar
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const prefs = useAppStore((s) => s.prefs)
@@ -136,6 +196,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               Home Assistant (consulta; requer HA_ENABLED no .env)
             </span>
           </label>
+          <GoogleConnectBlock />
 
           <h3 className="pt-2 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
             Agenda e padrões

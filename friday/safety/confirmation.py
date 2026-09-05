@@ -33,6 +33,7 @@ GATED_SKILLS = frozenset(
         "send_email",
         "draft_email_reply",
         "schedule_local_reminder",
+        "ha_call_service",
     }
 )
 
@@ -117,6 +118,7 @@ CONFIRMATION_POLICY = """
 A FRIDAY pede confirmacao explicita antes de:
 - Enviar emails ou mensagens (send_email / draft_email_reply)
 - Criar, alterar ou cancelar eventos de calendario
+- Ligar/desligar dispositivos Home Assistant (ha_call_service)
 - Apagar ou substituir ficheiros
 - Executar comandos potencialmente perigosos
 - Fazer compras ou pagamentos

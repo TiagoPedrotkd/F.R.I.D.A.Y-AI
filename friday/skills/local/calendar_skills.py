@@ -1,12 +1,13 @@
-"""Calendar skills (CalDAV)."""
+"""Calendar skills (Google Calendar or CalDAV via provider)."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from friday.config import Settings, get_settings
-from friday.productivity.caldav_client import (
-    CalDavError,
+from friday.productivity.calendar_provider import (
+    CalendarProviderError,
+    calendar_available,
     cancel_event,
     create_event,
     find_free_slots,
@@ -20,12 +21,12 @@ from friday.skills.base import SkillResult
 from friday.skills.gated import confirmation_required_result, is_confirmed
 
 
-def _cal_cfg(settings: Settings) -> dict[str, str]:
-    return {
-        "url": settings.caldav_url,
-        "username": settings.caldav_user,
-        "password": settings.caldav_password,
-    }
+def _not_configured() -> SkillResult:
+    return SkillResult(
+        success=False,
+        content="",
+        error="Calendario nao configurado (Google OAuth ou CalDAV).",
+    )
 
 
 class ListCalendarEventsSkill:
@@ -52,14 +53,14 @@ class ListCalendarEventsSkill:
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
         s = self._settings
-        if not s.caldav_enabled or not s.caldav_url:
+        if not calendar_available(s):
             return SkillResult(
-                success=False, content="", error="CalDAV nao configurado."
+                success=False, content="", error="Calendario nao configurado (Google ou CalDAV)."
             )
         days = int(arguments.get("days") or 7)
         try:
-            events = list_events(**_cal_cfg(s), days=days)
-        except CalDavError as exc:
+            events = list_events(s, days=days)
+        except CalendarProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         record_action("list_events", f"{len(events)} events")
         if not events:
@@ -118,10 +119,10 @@ class CreateCalendarEventSkill:
             "description": description,
         }
         preview = {"title": title, "start": start, "end": end or "(+1h)"}
-        consequences = "O evento sera gravado no calendario CalDAV."
-        if s.caldav_enabled and s.caldav_url and not is_confirmed(arguments):
+        consequences = "O evento sera gravado no calendario."
+        if calendar_available(s) and not is_confirmed(arguments):
             try:
-                overlaps = find_overlaps(**_cal_cfg(s), start=start, end=end)
+                overlaps = find_overlaps(s, start=start, end=end)
                 if overlaps:
                     names = ", ".join(
                         str(o.get("summary") or o.get("uid")) for o in overlaps[:3]
@@ -142,17 +143,17 @@ class CreateCalendarEventSkill:
                 payload=payload,
                 preview=preview,
             )
-        if not s.caldav_enabled or not s.caldav_url:
-            return SkillResult(success=False, content="", error="CalDAV nao configurado.")
+        if not calendar_available(s):
+            return SkillResult(success=False, content="", error="Calendario nao configurado (Google ou CalDAV).")
         try:
             created = create_event(
-                **_cal_cfg(s),
+                s,
                 title=title,
                 start=start,
                 end=end,
                 description=description,
             )
-        except CalDavError as exc:
+        except CalendarProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         invalidate_context_cache()
         record_action("create_event", title)
@@ -198,11 +199,11 @@ class CancelCalendarEventSkill:
                 success=False, content="", error="Indica uid ou titulo do evento."
             )
         s = self._settings
-        if not s.caldav_enabled or not s.caldav_url:
-            return SkillResult(success=False, content="", error="CalDAV nao configurado.")
+        if not calendar_available(s):
+            return SkillResult(success=False, content="", error="Calendario nao configurado (Google ou CalDAV).")
         try:
-            events = list_events(**_cal_cfg(s), days=30)
-        except CalDavError as exc:
+            events = list_events(s, days=30)
+        except CalendarProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         needle = hint.casefold()
         hits = [e for e in events if needle in str(e.get("summary") or "").casefold()]
@@ -240,11 +241,11 @@ class CancelCalendarEventSkill:
                 preview={"uid": uid, "title": hint},
             )
         s = self._settings
-        if not s.caldav_enabled or not s.caldav_url:
-            return SkillResult(success=False, content="", error="CalDAV nao configurado.")
+        if not calendar_available(s):
+            return SkillResult(success=False, content="", error="Calendario nao configurado (Google ou CalDAV).")
         try:
-            deleted = cancel_event(**_cal_cfg(s), uid=uid)
-        except CalDavError as exc:
+            deleted = cancel_event(s, uid=uid)
+        except CalendarProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         invalidate_context_cache()
         record_action("cancel_event", hint)
@@ -298,18 +299,18 @@ class ModifyCalendarEventSkill:
                 preview=preview,
             )
         s = self._settings
-        if not s.caldav_enabled or not s.caldav_url:
-            return SkillResult(success=False, content="", error="CalDAV nao configurado.")
+        if not calendar_available(s):
+            return SkillResult(success=False, content="", error="Calendario nao configurado (Google ou CalDAV).")
         try:
             updated = modify_event(
-                **_cal_cfg(s),
+                s,
                 uid=uid,
                 title=arguments.get("title"),
                 start=arguments.get("start"),
                 end=arguments.get("end"),
                 description=arguments.get("description"),
             )
-        except CalDavError as exc:
+        except CalendarProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         invalidate_context_cache()
         record_action("modify_event", uid)
@@ -341,8 +342,8 @@ class FindFreeSlotsSkill:
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
         s = self._settings
-        if not s.caldav_enabled or not s.caldav_url:
-            return SkillResult(success=False, content="", error="CalDAV nao configurado.")
+        if not calendar_available(s):
+            return SkillResult(success=False, content="", error="Calendario nao configurado (Google ou CalDAV).")
         patterns = get_user_patterns(s)
         duration = int(
             arguments.get("duration_min")
@@ -353,14 +354,14 @@ class FindFreeSlotsSkill:
         limit = int(arguments.get("limit") or 5)
         try:
             slots = find_free_slots(
-                **_cal_cfg(s),
+                s,
                 days=days,
                 duration_min=duration,
                 working_hours=str(patterns.get("working_hours") or "9:00-18:00"),
                 preferred_hour=int(patterns.get("preferred_meeting_hour") or 14),
                 limit=limit,
             )
-        except CalDavError as exc:
+        except CalendarProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         record_action("find_free_slots", f"{len(slots)} slots")
         if not slots:

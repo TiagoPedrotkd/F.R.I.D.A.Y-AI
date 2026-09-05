@@ -55,7 +55,8 @@ services:
     depends_on:
       - mosquitto
     ports:
-      - "127.0.0.1:${HA_PORT:-8123}:8123"
+      # LAN (app telemóvel) + localhost. Sem port-forward no router.
+      - "${HA_PORT:-8123}:8123"
     volumes:
       - ha_config:/config
       - /etc/localtime:/etc/localtime:ro
@@ -64,6 +65,20 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+
+  # Fase 3 — Matter Server (obrigatório em HA Container; add-on só existe no HA OS)
+  # No formulário Matter do HA usa: ws://matter-server:5580/ws  (NÃO localhost)
+  matter-server:
+    profiles: ["homeassistant", "matter"]
+    image: ghcr.io/home-assistant-libs/python-matter-server:stable
+    container_name: friday-matter-server
+    restart: unless-stopped
+    volumes:
+      - matter_server_data:/data
+    ports:
+      - "127.0.0.1:5580:5580"
+    # Em Linux nativo, network_mode: host ajuda Thread/mDNS.
+    # No Docker Desktop Windows isso nao e equivalente — preferir HomeKit Device para IKEA.
 
   # Fase 3 — Frigate stub (profile: frigate) — NÃO arranca por defeito
   frigate:
@@ -92,3 +107,4 @@ volumes:
   radicale_data:
   ha_config:
   frigate_media:
+  matter_server_data:

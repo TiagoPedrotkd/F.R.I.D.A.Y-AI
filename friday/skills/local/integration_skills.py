@@ -49,8 +49,8 @@ class GetWeatherSkill:
 class GetHealthSummarySkill:
     name = "get_health_summary"
     description = (
-        "Le resumo de saude local (data/integrations/health/summary.json). "
-        "Apple Health/Fitbit via export ficheiro."
+        "Le resumo de saude local (cache Google Fitness / ficheiro). "
+        "Usa para 'como dormi', 'passos de hoje', 'resumo de saude'."
     )
     parameters: dict[str, Any] = {"type": "object", "properties": {}, "required": []}
 
@@ -59,8 +59,8 @@ class GetHealthSummarySkill:
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
         enabled = get_enabled_integrations(self._settings)
-        if not enabled.get("health_file", True):
-            return SkillResult(success=False, content="", error="Health file desactivado.")
+        if not enabled.get("health_file", True) and not enabled.get("google_health", True):
+            return SkillResult(success=False, content="", error="Saude desactivada nas prefs.")
         result = read_health_summary(self._settings)
         if not result.get("ok"):
             return SkillResult(success=False, content="", error=str(result.get("error")))
@@ -68,6 +68,36 @@ class GetHealthSummarySkill:
         return SkillResult(
             success=True,
             content=f"Resumo de saude: {data}",
+            metadata={"kind": "health", **result},
+        )
+
+
+class GetHealthDaySkill:
+    name = "get_health_day"
+    description = "Le metricas de saude de um dia (YYYY-MM-DD) do cache local."
+    parameters: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "date": {"type": "string", "description": "YYYY-MM-DD (default: hoje)"},
+        },
+        "required": [],
+    }
+
+    def __init__(self, settings: Settings | None = None) -> None:
+        self._settings = settings or get_settings()
+
+    async def execute(self, arguments: dict[str, Any]) -> SkillResult:
+        from datetime import date as date_cls
+
+        from friday.integrations.google_health import read_day
+
+        day = str(arguments.get("date") or "").strip() or date_cls.today().isoformat()
+        result = read_day(day, self._settings)
+        if not result.get("ok"):
+            return SkillResult(success=False, content="", error=str(result.get("error")))
+        return SkillResult(
+            success=True,
+            content=f"Saude {day}: {result.get('data')}",
             metadata={"kind": "health", **result},
         )
 

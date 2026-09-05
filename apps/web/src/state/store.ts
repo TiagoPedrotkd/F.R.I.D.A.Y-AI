@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import type { ActivityStep, FridayAlert, PendingConfirmation, SourceItem } from '../api/client'
+import type {
+  ActivityStep,
+  FridayAlert,
+  HaEntity,
+  PendingConfirmation,
+  SourceItem,
+} from '../api/client'
 import * as api from '../api/client'
 import { DEMO_FIXTURES, defaultPrefs, type Prefs } from '../demo/fixtures'
 import { playWavBytes, startMicRecording, type MicRecorder } from '../platform/audio'
@@ -34,21 +40,47 @@ type AppStore = {
   prefs: Prefs
   backendOk: boolean
   llmOk: boolean
+  haEnabled: boolean
+  haOk: boolean | null
+  haUrl: string | null
   demoForced: boolean
   error: string | null
   draft: string
   mic: MicRecorder | null
   ttsAbort: AbortController | null
   settingsOpen: boolean
+  casaOpen: boolean
+  saudeOpen: boolean
+  agendaOpen: boolean
+  mailOpen: boolean
   sidebarOpen: boolean
+  googleEnabled: boolean
+  googleConfigured: boolean
+  casaLoading: boolean
+  casaError: string | null
+  casaLights: HaEntity[]
+  casaSwitches: HaEntity[]
+  casaEnergy: HaEntity[]
+  casaSensors: HaEntity[]
 
   setDraft: (v: string) => void
   setState: (s: FridayState) => void
   setPrefs: (p: Partial<Prefs>) => void
   setSettingsOpen: (v: boolean) => void
+  setCasaOpen: (v: boolean) => void
+  setSaudeOpen: (v: boolean) => void
+  setAgendaOpen: (v: boolean) => void
+  setMailOpen: (v: boolean) => void
   setSidebarOpen: (v: boolean) => void
+  connectGoogle: () => Promise<void>
+  disconnectGoogle: () => Promise<void>
   dismissAlert: (index: number) => void
   bootstrap: () => Promise<void>
+  refreshCasa: () => Promise<void>
+  requestCasaAction: (
+    entityId: string,
+    service: 'turn_on' | 'turn_off' | 'toggle',
+  ) => Promise<void>
   sendText: (text?: string) => Promise<void>
   toggleMic: () => Promise<void>
   stopSpeaking: () => void
@@ -86,13 +118,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
   prefs: { ...defaultPrefs, ...getJson<Partial<Prefs>>('prefs', {}) },
   backendOk: false,
   llmOk: false,
+  haEnabled: false,
+  haOk: null,
+  haUrl: null,
   demoForced: false,
   error: null,
   draft: '',
   mic: null,
   ttsAbort: null,
   settingsOpen: false,
+  casaOpen: false,
+  saudeOpen: false,
+  agendaOpen: false,
+  mailOpen: false,
   sidebarOpen: false,
+  googleEnabled: false,
+  googleConfigured: false,
+  casaLoading: false,
+  casaError: null,
+  casaLights: [],
+  casaSwitches: [],
+  casaEnergy: [],
+  casaSensors: [],
 
   setDraft: (v) => set({ draft: v }),
   setState: (s) => set((st) => ({ state: transition(st.state, s) })),
@@ -141,9 +188,108 @@ export const useAppStore = create<AppStore>((set, get) => ({
       .catch(() => undefined)
   },
   setSettingsOpen: (v) => set({ settingsOpen: v }),
+  setCasaOpen: (v) => set({ casaOpen: v }),
+  setSaudeOpen: (v) => set({ saudeOpen: v }),
+  setAgendaOpen: (v) => set({ agendaOpen: v }),
+  setMailOpen: (v) => set({ mailOpen: v }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
+
+  connectGoogle: async () => {
+    try {
+      const { url } = await api.fetchGoogleAuthUrl()
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Falha ao abrir OAuth Google' })
+    }
+  },
+
+  disconnectGoogle: async () => {
+    try {
+      await api.disconnectGoogle()
+      set({ googleConfigured: get().googleConfigured })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Falha ao desligar Google' })
+    }
+  },
+
   dismissAlert: (index) =>
     set({ alerts: get().alerts.filter((_, i) => i !== index) }),
+
+  refreshCasa: async () => {
+    if (!get().prefs.homeAssistantEnabled) {
+      set({
+        casaError: 'Integração Home Assistant desactivada nas definições.',
+        casaLights: [],
+        casaSwitches: [],
+        casaEnergy: [],
+        casaSensors: [],
+      })
+      return
+    }
+    set({ casaLoading: true, casaError: null })
+    try {
+      const [st, lights, switches, energy, sensors] = await Promise.all([
+        api.fetchHaStatus(),
+        api.fetchHaEntities('light'),
+        api.fetchHaEntities('switch'),
+        api.fetchHaEnergy(),
+        api.fetchHaEntities('sensor', 80),
+      ])
+      const energyIds = new Set((energy.entities || []).map((e) => e.entity_id))
+      set({
+        haEnabled: true,
+        haOk: Boolean(st.ok),
+        haUrl: st.url || get().haUrl,
+        casaLights: lights.entities || [],
+        casaSwitches: switches.entities || [],
+        casaEnergy: energy.entities || [],
+        casaSensors: (sensors.entities || []).filter((e) => !energyIds.has(e.entity_id)),
+        casaLoading: false,
+        casaError: null,
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Falha ao ler Home Assistant'
+      set({
+        casaLoading: false,
+        casaError: msg,
+        haOk: false,
+      })
+    }
+  },
+
+  requestCasaAction: async (entityId, service) => {
+    const { sessionId, prefs } = get()
+    if (!sessionId) {
+      set({ error: 'Sem sessão activa.' })
+      return
+    }
+    if (prefs.demoMode || get().demoForced) {
+      set({
+        pending: {
+          action: 'ha_call_service',
+          target: entityId,
+          summary: `${service} ${entityId}`,
+          consequences: 'Demo — não altera dispositivos reais.',
+          preview: { entity_id: entityId, service },
+        },
+        state: transition(get().state, 'awaiting_confirmation'),
+      })
+      return
+    }
+    try {
+      const res = await api.requestHaAction(sessionId, entityId, service)
+      set({
+        pending: res.pending_confirmation,
+        state: transition(get().state, 'awaiting_confirmation'),
+        messages: [...get().messages, { id: uid(), role: 'assistant', text: res.reply }],
+      })
+    } catch (e) {
+      set({
+        error: e instanceof Error ? e.message : 'Falha ao pedir acção HA',
+        state: transition(get().state, 'error'),
+      })
+    }
+  },
 
   bootstrap: async () => {
     applyPrefsDom(get().prefs)
@@ -230,6 +376,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
         sessionId: session.id,
         backendOk: true,
         llmOk: status.llm.ok,
+        haEnabled: Boolean(status.ha?.enabled),
+        haOk: status.ha?.enabled ? (status.ha.ok ?? null) : null,
+        haUrl: status.ha?.url ?? null,
+        googleEnabled: Boolean(status.google?.enabled),
+        googleConfigured: Boolean(status.google?.configured),
         demoForced,
         state: transition(get().state, 'idle'),
         prefs,
@@ -496,7 +647,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   resolveConfirm: async (decision) => {
-    const { sessionId, prefs } = get()
+    const { sessionId, prefs, pending: prevPending } = get()
     if (!sessionId || get().demoForced || prefs.demoMode) {
       const reply =
         decision === 'confirm'
@@ -521,6 +672,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
           nextPending ? 'awaiting_confirmation' : 'idle',
         ),
       })
+      if (
+        decision === 'confirm' &&
+        !nextPending &&
+        prevPending?.action === 'ha_call_service' &&
+        get().casaOpen
+      ) {
+        void get().refreshCasa()
+      }
     } catch (e) {
       set({
         error: e instanceof Error ? e.message : 'Falha na confirmação',

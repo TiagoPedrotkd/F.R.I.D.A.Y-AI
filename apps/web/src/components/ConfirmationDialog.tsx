@@ -27,6 +27,12 @@ function PreviewBlock({ preview }: { preview?: Record<string, unknown> }) {
       {Array.isArray(preview.overlaps) && preview.overlaps.length > 0 ? (
         <p style={{ color: 'var(--color-amber)' }}>Conflitos detectados no calendario.</p>
       ) : null}
+      {preview.entity_id != null ? (
+        <p>
+          Dispositivo: {String(preview.entity_id)}
+          {preview.service != null ? ` · ${String(preview.service)}` : ''}
+        </p>
+      ) : null}
     </div>
   )
 }

@@ -7,9 +7,9 @@ from typing import Any
 from friday.config import Settings, get_settings
 from friday.productivity.contacts import resolve_contact
 from friday.productivity.context import invalidate_context_cache, record_action
-from friday.productivity.email_client import (
-    EmailError,
-    EmailSettings,
+from friday.productivity.email_provider import (
+    EmailProviderError,
+    email_available,
     list_emails,
     read_email,
     send_email,
@@ -59,22 +59,6 @@ async def _draft_reply_with_llm(settings: Settings, msg: dict[str, Any]) -> str:
         return fallback
 
 
-def _email_cfg(settings: Settings) -> EmailSettings:
-    return EmailSettings(
-        imap_host=settings.imap_host,
-        imap_port=settings.imap_port,
-        imap_user=settings.imap_user,
-        imap_password=settings.imap_password,
-        imap_folder=settings.imap_folder,
-        smtp_host=settings.smtp_host,
-        smtp_port=settings.smtp_port,
-        smtp_user=settings.smtp_user,
-        smtp_password=settings.smtp_password,
-        smtp_from=settings.smtp_from,
-        use_ssl=settings.email_use_ssl,
-    )
-
-
 class ListEmailsSkill:
     name = "list_emails"
     description = (
@@ -99,7 +83,7 @@ class ListEmailsSkill:
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
         s = self._settings
-        if not s.email_enabled:
+        if not email_available(s):
             return SkillResult(
                 success=False,
                 content="",
@@ -107,8 +91,8 @@ class ListEmailsSkill:
             )
         limit = int(arguments.get("limit") or 10)
         try:
-            items = list_emails(_email_cfg(s), limit=limit)
-        except EmailError as exc:
+            items = list_emails(s, limit=limit)
+        except EmailProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         if not items:
             return SkillResult(
@@ -144,7 +128,7 @@ class ReadEmailSkill:
 
     async def execute(self, arguments: dict[str, Any]) -> SkillResult:
         s = self._settings
-        if not s.email_enabled:
+        if not email_available(s):
             return SkillResult(
                 success=False,
                 content="",
@@ -154,8 +138,8 @@ class ReadEmailSkill:
         if not mid:
             return SkillResult(success=False, content="", error="message_id em falta")
         try:
-            msg = read_email(_email_cfg(s), mid)
-        except EmailError as exc:
+            msg = read_email(s, message_id=mid)
+        except EmailProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         content = (
             f"De: {msg.get('from')}\n"
@@ -235,15 +219,15 @@ class SendEmailSkill:
                 preview=preview,
             )
         s = self._settings
-        if not s.email_enabled:
+        if not email_available(s):
             return SkillResult(
                 success=False,
                 content="",
                 error="Email desactivado (EMAIL_ENABLED=false).",
             )
         try:
-            sent = send_email(_email_cfg(s), to=to, subject=subject, body=body)
-        except EmailError as exc:
+            sent = send_email(s, to=to, subject=subject, body=body)
+        except EmailProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         invalidate_context_cache()
         record_action("send_email", to)
@@ -287,13 +271,13 @@ class DraftEmailReplySkill:
         mid = str(arguments.get("message_id") or "").strip()
         if not mid:
             return SkillResult(success=False, content="", error="message_id em falta")
-        if not s.email_enabled:
+        if not email_available(s):
             return SkillResult(
                 success=False, content="", error="Email desactivado (EMAIL_ENABLED=false)."
             )
         try:
-            msg = read_email(_email_cfg(s), mid)
-        except EmailError as exc:
+            msg = read_email(s, message_id=mid)
+        except EmailProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         to = str(msg.get("from") or "").strip()
         # extract email from "Name <email>"
@@ -319,8 +303,8 @@ class DraftEmailReplySkill:
                 preview=preview,
             )
         try:
-            sent = send_email(_email_cfg(s), to=to_addr, subject=subj, body=body)
-        except EmailError as exc:
+            sent = send_email(s, to=to_addr, subject=subj, body=body)
+        except EmailProviderError as exc:
             return SkillResult(success=False, content="", error=str(exc))
         invalidate_context_cache()
         record_action("draft_email_reply", to_addr)
@@ -550,16 +534,11 @@ class PrepareMeetingSkill:
         s = self._settings
         lines = [f"Preparacao para '{arguments.get('query')}':"]
         # Calendar matches
-        if s.caldav_enabled and s.caldav_url:
-            try:
-                from friday.productivity.caldav_client import list_events
+        from friday.productivity.calendar_provider import calendar_available, list_events as cal_list
 
-                events = list_events(
-                    url=s.caldav_url,
-                    username=s.caldav_user,
-                    password=s.caldav_password,
-                    days=3,
-                )
+        if calendar_available(s):
+            try:
+                events = cal_list(s, days=3)
                 hits = [
                     e
                     for e in events
@@ -572,9 +551,9 @@ class PrepareMeetingSkill:
             except Exception as exc:
                 lines.append(f"(Calendario indisponivel: {exc})")
         # Email matches
-        if s.email_enabled and s.imap_host:
+        if email_available(s):
             try:
-                items = list_emails(_email_cfg(s), limit=int(arguments.get("limit") or 15))
+                items = list_emails(s, limit=int(arguments.get("limit") or 15))
                 matched = [
                     m
                     for m in items

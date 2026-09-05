@@ -20,6 +20,7 @@ export type Prefs = {
   profileConstraints: string
   domainsOfInterest: string
   homeAssistantEnabled: boolean
+  openBankingEnabled: boolean
 }
 
 export const defaultPrefs: Prefs = {
@@ -44,6 +45,7 @@ export const defaultPrefs: Prefs = {
   profileConstraints: '',
   domainsOfInterest: 'productivity,tech',
   homeAssistantEnabled: true,
+  openBankingEnabled: true,
 }
 
 export const DEMO_FIXTURES = {

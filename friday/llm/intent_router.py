@@ -90,6 +90,8 @@ _FINANCE_PATTERNS = (
     r"\bmarket news\b",
     r"\bfinancial briefing\b",
     r"\bbriefing financeiro\b",
+    r"\bnoticias (de |das )?financ",
+    r"\bnotícias (de |das )?financ",
     r"\bfinancas\b",
     r"\bfinanças\b",
     r"\bmarkets\b",
@@ -301,6 +303,40 @@ _HA_STATUS_PATTERNS = (
     r"\bha online\b",
     r"\bcasa inteligente\b",
     r"\bstatus (do |da )?(ha|home assistant|casa)\b",
+)
+
+_FINANCE_SUMMARY_PATTERNS = (
+    r"\bresumo (das |da |de )?financ",
+    r"\borcamento\b",
+    r"\borçamento\b",
+    r"\bquanto (posso|me sobra|gastei)\b",
+    r"\bsalario (mensal)?\b",
+    r"\bsalário (mensal)?\b",
+    r"\bmeu orcamento\b",
+    r"\bminhas financ",
+)
+
+_FINANCE_TX_PATTERNS = (
+    r"\blancamentos?\b",
+    r"\bgastos? (do |deste )?mes\b",
+    r"\bgastos? (do |deste )?mês\b",
+    r"\bdespesas? (do |deste )?mes\b",
+    r"\bultimos? (gastos|lancamentos)\b",
+    r"\búltimos? (gastos|lançamentos)\b",
+)
+
+_FINANCE_RECURRING_PATTERNS = (
+    r"\bdespesas? recorrentes?\b",
+    r"\bassinaturas?\b",
+    r"\bmensalidades?\b",
+    r"\brecurrent",
+)
+
+_FINANCE_INVEST_PATTERNS = (
+    r"\binvestimentos?\b",
+    r"\bibkr\b",
+    r"\bbitstack\b",
+    r"\bcarteira (de )?invest",
 )
 
 _HA_LIST_PATTERNS = (
@@ -638,6 +674,16 @@ def match_skill_with_args(user_text: str) -> tuple[str, dict] | None:
     """
     raw = user_text.strip()
     norm = _normalize(raw)
+
+    # Personal ledger before world-finance news (both say "financas")
+    if _any_pattern(norm, _FINANCE_SUMMARY_PATTERNS):
+        return "get_finance_summary", {}
+    if _any_pattern(norm, _FINANCE_RECURRING_PATTERNS):
+        return "list_recurring_expenses", {}
+    if _any_pattern(norm, _FINANCE_INVEST_PATTERNS):
+        return "get_investment_summary", {}
+    if _any_pattern(norm, _FINANCE_TX_PATTERNS):
+        return "list_finance_transactions", {"limit": 20}
 
     hit = _match_country_routes(norm)
     if hit:

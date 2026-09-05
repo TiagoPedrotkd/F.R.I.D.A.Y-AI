@@ -34,6 +34,9 @@ GATED_SKILLS = frozenset(
         "draft_email_reply",
         "schedule_local_reminder",
         "ha_call_service",
+        "add_finance_transaction",
+        "set_salary",
+        "upsert_recurring_expense",
     }
 )
 

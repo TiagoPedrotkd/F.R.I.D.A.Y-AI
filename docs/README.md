@@ -9,6 +9,7 @@
 | Fase 2 — CalDAV / Email / desktop | [fase-2/README.md](fase-2/README.md) |
 | Fase 3 — Casa inteligente (HA / MQTT / Frigate) | [fase-3/README.md](fase-3/README.md) |
 | Fase 4 — Google (Saúde / Calendar / Gmail) | [fase-4/README.md](fase-4/README.md) |
+| Fase 5 — Finanças pessoais (ledger local) | [fase-5/README.md](fase-5/README.md) |
 | Fase LLM — prompts, treino, especialistas | [fase-llm/README.md](fase-llm/README.md) |
 
 Runtime do assistente: `friday/` + `services/agent-api` + `apps/web`.  

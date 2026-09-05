@@ -196,6 +196,16 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               Home Assistant (consulta; requer HA_ENABLED no .env)
             </span>
           </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={prefs.openBankingEnabled}
+              onChange={(e) => setPrefs({ openBankingEnabled: e.target.checked })}
+            />
+            <span className="text-[var(--text-muted)]">
+              Finanças pessoais (ledger local; painel Finanças)
+            </span>
+          </label>
           <GoogleConnectBlock />
 
           <h3 className="pt-2 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">

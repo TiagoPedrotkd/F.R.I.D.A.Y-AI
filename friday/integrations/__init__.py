@@ -30,6 +30,7 @@ def get_enabled_integrations(settings: Settings | None = None) -> dict[str, bool
                 "strava_file": bool(raw.get("strava_file", True)),
                 "home_assistant": bool(raw.get("home_assistant", True)),
                 "google_health": bool(raw.get("google_health", True)),
+                "open_banking": bool(raw.get("open_banking", True)),
             }
     except Exception:
         pass
@@ -40,6 +41,7 @@ def get_enabled_integrations(settings: Settings | None = None) -> dict[str, bool
         "strava_file": True,
         "home_assistant": True,
         "google_health": True,
+        "open_banking": True,
     }
 
 

@@ -51,11 +51,14 @@ type AppStore = {
   settingsOpen: boolean
   casaOpen: boolean
   saudeOpen: boolean
+  financasOpen: boolean
   agendaOpen: boolean
   mailOpen: boolean
   sidebarOpen: boolean
   googleEnabled: boolean
   googleConfigured: boolean
+  financeEnabled: boolean
+  financeConfigured: boolean
   casaLoading: boolean
   casaError: string | null
   casaLights: HaEntity[]
@@ -69,6 +72,7 @@ type AppStore = {
   setSettingsOpen: (v: boolean) => void
   setCasaOpen: (v: boolean) => void
   setSaudeOpen: (v: boolean) => void
+  setFinancasOpen: (v: boolean) => void
   setAgendaOpen: (v: boolean) => void
   setMailOpen: (v: boolean) => void
   setSidebarOpen: (v: boolean) => void
@@ -129,11 +133,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   settingsOpen: false,
   casaOpen: false,
   saudeOpen: false,
+  financasOpen: false,
   agendaOpen: false,
   mailOpen: false,
   sidebarOpen: false,
   googleEnabled: false,
   googleConfigured: false,
+  financeEnabled: false,
+  financeConfigured: false,
   casaLoading: false,
   casaError: null,
   casaLights: [],
@@ -183,6 +190,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
           notion_export: true,
           strava_file: true,
           home_assistant: prefs.homeAssistantEnabled,
+          open_banking: prefs.openBankingEnabled,
         },
       })
       .catch(() => undefined)
@@ -190,6 +198,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setSettingsOpen: (v) => set({ settingsOpen: v }),
   setCasaOpen: (v) => set({ casaOpen: v }),
   setSaudeOpen: (v) => set({ saudeOpen: v }),
+  setFinancasOpen: (v) => set({ financasOpen: v }),
   setAgendaOpen: (v) => set({ agendaOpen: v }),
   setMailOpen: (v) => set({ mailOpen: v }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
@@ -356,6 +365,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
           if (typeof ie.home_assistant === 'boolean') {
             prefs.homeAssistantEnabled = ie.home_assistant
           }
+          if (typeof ie.open_banking === 'boolean') {
+            prefs.openBankingEnabled = ie.open_banking
+          }
         }
         setJson('prefs', prefs)
         applyPrefsDom(prefs)
@@ -381,6 +393,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
         haUrl: status.ha?.url ?? null,
         googleEnabled: Boolean(status.google?.enabled),
         googleConfigured: Boolean(status.google?.configured),
+        financeEnabled: Boolean(status.finance?.enabled),
+        financeConfigured: Boolean(status.finance?.configured),
         demoForced,
         state: transition(get().state, 'idle'),
         prefs,

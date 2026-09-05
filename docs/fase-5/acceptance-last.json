@@ -1,0 +1,42 @@
+﻿{
+    "at":  "2026-09-05T22:42:48.5534564Z",
+    "checks":  {
+                   "docs_readme":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "docs_schema":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "docs_skills":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "no_enablebanking_doc":  {
+                                                "detail":  "",
+                                                "ok":  true
+                                            },
+                   "module_ledger":  {
+                                         "detail":  "",
+                                         "ok":  true
+                                     },
+                   "no_enable_module":  {
+                                            "detail":  "",
+                                            "ok":  true
+                                        },
+                   "financas_panel":  {
+                                          "detail":  "",
+                                          "ok":  true
+                                      },
+                   "pytest_fase5":  {
+                                        "detail":  "exit=0",
+                                        "ok":  true
+                                    },
+                   "skills_finance":  {
+                                          "detail":  "",
+                                          "ok":  true
+                                      }
+               },
+    "passed":  true
+}

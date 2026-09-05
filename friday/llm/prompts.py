@@ -71,10 +71,13 @@ Para voz: resultado primeiro, 2–5 frases, sem markdown longo, sem URLs complet
 - prepare_meeting / schedule_local_reminder / start_meeting_workflow
 - get_weather / get_health_summary / search_personal_notes (se registadas)
 - ha_get_status / ha_list_entities / ha_get_state / ha_call_service (se HA_ENABLED; accoes pedem confirmacao)
+- get_finance_summary / list_finance_transactions / list_recurring_expenses / get_investment_summary
+- add_finance_transaction / set_salary / upsert_recurring_expense (pedem confirmacao)
 
 Para factos externos: prefer research_web; cita URLs.
 Para factos do projecto: prefer search_docs; cita documento.
 Para casa / sensores / luzes (consulta): prefer tools HA; nao inventes estados.
+Para orcamento / gastos / salario / investimentos locais: prefer tools finance; nao inventes valores.
 """
 
 JSON_FALLBACK_INSTRUCTION = """\
@@ -93,6 +96,9 @@ Onde fica o rag_chroma? -> {"action":"call_tool","name":"search_docs","arguments
 O que depende do agent-api? -> {"action":"call_tool","name":"search_knowledge_graph","arguments":{"query":"agent-api"}}
 Estado da casa? -> {"action":"call_tool","name":"ha_get_status","arguments":{}}
 Ligar light.sala -> {"action":"call_tool","name":"ha_call_service","arguments":{"entity_id":"light.sala","service":"turn_on"}}
+Qual o saldo? -> {"action":"call_tool","name":"get_finance_summary","arguments":{}}
+Ultimos gastos? -> {"action":"call_tool","name":"list_finance_transactions","arguments":{"limit":20}}
+Investimentos? -> {"action":"call_tool","name":"get_investment_summary","arguments":{}}
 Ola Friday -> {"action":"respond","text":"Senhor. Em que posso ajudar?"}
 """
 

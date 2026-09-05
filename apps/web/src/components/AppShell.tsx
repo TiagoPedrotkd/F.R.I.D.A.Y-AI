@@ -16,6 +16,7 @@ import { HudDateGauge, HudRingMeter } from './HudWidgets'
 import { MailPanel } from './MailPanel'
 import { QuickActions } from './QuickActions'
 import { SaudePanel } from './SaudePanel'
+import { FinancasPanel } from './FinancasPanel'
 import { SessionList } from './SessionList'
 import { SettingsPanel } from './SettingsPanel'
 import { SourceCard } from './SourceCard'
@@ -64,6 +65,8 @@ export function AppShell() {
   const setCasaOpen = useAppStore((s) => s.setCasaOpen)
   const saudeOpen = useAppStore((s) => s.saudeOpen)
   const setSaudeOpen = useAppStore((s) => s.setSaudeOpen)
+  const financasOpen = useAppStore((s) => s.financasOpen)
+  const setFinancasOpen = useAppStore((s) => s.setFinancasOpen)
   const agendaOpen = useAppStore((s) => s.agendaOpen)
   const setAgendaOpen = useAppStore((s) => s.setAgendaOpen)
   const mailOpen = useAppStore((s) => s.mailOpen)
@@ -152,6 +155,9 @@ export function AppShell() {
           )}
           <button type="button" className="hud-btn" onClick={() => setSaudeOpen(true)}>
             Saúde
+          </button>
+          <button type="button" className="hud-btn" onClick={() => setFinancasOpen(true)}>
+            Finanças
           </button>
           <button type="button" className="hud-btn hidden sm:inline-flex" onClick={() => setAgendaOpen(true)}>
             Agenda
@@ -262,6 +268,7 @@ export function AppShell() {
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
       {casaOpen && <CasaPanel onClose={() => setCasaOpen(false)} />}
       {saudeOpen && <SaudePanel onClose={() => setSaudeOpen(false)} />}
+      {financasOpen && <FinancasPanel onClose={() => setFinancasOpen(false)} />}
       {agendaOpen && <AgendaPanel onClose={() => setAgendaOpen(false)} />}
       {mailOpen && <MailPanel onClose={() => setMailOpen(false)} />}
       <ConfirmationDialog />

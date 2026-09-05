@@ -134,6 +134,23 @@ def default_registry(settings: Settings | None = None) -> SkillRegistry:
     registry.register(GetHealthSummarySkill(settings=settings))
     registry.register(GetHealthDaySkill(settings=settings))
     registry.register(SearchPersonalNotesSkill(settings=settings))
+    from friday.skills.local.finance_skills import (
+        AddFinanceTransactionSkill,
+        GetFinanceSummarySkill,
+        GetInvestmentSummarySkill,
+        ListFinanceTransactionsSkill,
+        ListRecurringExpensesSkill,
+        SetSalarySkill,
+        UpsertRecurringExpenseSkill,
+    )
+
+    registry.register(GetFinanceSummarySkill(settings=settings))
+    registry.register(ListFinanceTransactionsSkill(settings=settings))
+    registry.register(ListRecurringExpensesSkill(settings=settings))
+    registry.register(GetInvestmentSummarySkill(settings=settings))
+    registry.register(AddFinanceTransactionSkill(settings=settings))
+    registry.register(SetSalarySkill(settings=settings))
+    registry.register(UpsertRecurringExpenseSkill(settings=settings))
     if getattr(settings, "ha_enabled", False):
         from friday.skills.local.ha_skills import (
             HaCallServiceSkill,

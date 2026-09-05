@@ -70,6 +70,7 @@ export type StatusResponse = {
   llm: { ok: boolean; model?: string; error?: string | null }
   ha?: { enabled: boolean; ok?: boolean | null; url?: string | null }
   google?: { enabled: boolean; configured?: boolean }
+  finance?: { enabled: boolean; configured?: boolean }
   auto_open_monitors?: boolean
 }
 
@@ -109,7 +110,7 @@ async function json<T>(res: Response): Promise<T> {
 }
 
 export async function fetchStatus(): Promise<StatusResponse> {
-  return json(await fetch(apiUrl('/v1/status'), { signal: withTimeout(8000) }))
+  return json(await fetch(apiUrl('/v1/status'), { signal: withTimeout(15000) }))
 }
 
 export async function createSession(): Promise<{ id: string }> {
@@ -404,6 +405,228 @@ export async function fetchMailMessages(limit = 15): Promise<{
 }> {
   return json(
     await fetch(apiUrl(`/v1/mail/messages?limit=${limit}`), { signal: withTimeout(30000) }),
+  )
+}
+
+export type FinanceStatus = {
+  enabled: boolean
+  configured: boolean
+  provider?: string
+  currency?: string
+  salary_monthly?: number | null
+  recurring_count?: number
+  investments_positions?: number
+}
+
+export type FinanceSummary = {
+  ok: boolean
+  year: number
+  month: number
+  currency: string
+  salary_monthly?: number | null
+  income_extra: number
+  expenses: number
+  recurring_imputed: number
+  remaining: number
+  transactions_count: number
+  transactions: FinanceLedgerTx[]
+  recurring_breakdown?: { name?: string; monthly_imputed?: number; cadence?: string }[]
+  investments?: {
+    brokers?: Record<
+      string,
+      { positions_count?: number; cost_basis_approx?: number; positions?: FinancePosition[] }
+    >
+  }
+}
+
+export type FinanceLedgerTx = {
+  id: string
+  date?: string
+  amount?: number
+  category?: string
+  note?: string
+  invoice_id?: string | null
+  source?: string
+}
+
+export type FinanceRecurring = {
+  id: string
+  name: string
+  amount: number
+  cadence: string
+  category?: string
+  active?: boolean
+}
+
+export type FinancePosition = {
+  id?: string
+  symbol: string
+  qty: number
+  avg_cost?: number | null
+  currency?: string
+}
+
+export async function fetchFinanceStatus(): Promise<FinanceStatus> {
+  return json(await fetch(apiUrl('/v1/finance/status'), { signal: withTimeout(8000) }))
+}
+
+export async function fetchFinanceSummary(year?: number, month?: number): Promise<FinanceSummary> {
+  const qs = new URLSearchParams()
+  if (year != null) qs.set('year', String(year))
+  if (month != null) qs.set('month', String(month))
+  const q = qs.toString()
+  return json(
+    await fetch(apiUrl(`/v1/finance/summary${q ? `?${q}` : ''}`), { signal: withTimeout(10000) }),
+  )
+}
+
+export async function fetchFinanceProfile(): Promise<{
+  ok: boolean
+  profile: { salary_monthly?: number | null; currency?: string }
+}> {
+  return json(await fetch(apiUrl('/v1/finance/profile'), { signal: withTimeout(8000) }))
+}
+
+export async function putFinanceProfile(body: {
+  salary_monthly?: number | null
+  currency?: string
+}): Promise<{ ok: boolean; profile: { salary_monthly?: number | null; currency?: string } }> {
+  return json(
+    await fetch(apiUrl('/v1/finance/profile'), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: withTimeout(8000),
+    }),
+  )
+}
+
+export async function fetchFinanceRecurring(): Promise<{
+  ok: boolean
+  items: FinanceRecurring[]
+}> {
+  return json(await fetch(apiUrl('/v1/finance/recurring'), { signal: withTimeout(8000) }))
+}
+
+export async function createFinanceRecurring(body: {
+  name: string
+  amount: number
+  cadence: string
+  category?: string
+}): Promise<{ ok: boolean; item: FinanceRecurring }> {
+  return json(
+    await fetch(apiUrl('/v1/finance/recurring'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: withTimeout(8000),
+    }),
+  )
+}
+
+export async function deleteFinanceRecurring(id: string): Promise<{ ok: boolean }> {
+  return json(
+    await fetch(apiUrl(`/v1/finance/recurring/${encodeURIComponent(id)}`), {
+      method: 'DELETE',
+      signal: withTimeout(8000),
+    }),
+  )
+}
+
+export async function fetchFinanceLedgerTx(year?: number, month?: number): Promise<{
+  ok: boolean
+  transactions: FinanceLedgerTx[]
+}> {
+  const qs = new URLSearchParams()
+  if (year != null) qs.set('year', String(year))
+  if (month != null) qs.set('month', String(month))
+  const q = qs.toString()
+  return json(
+    await fetch(apiUrl(`/v1/finance/transactions${q ? `?${q}` : ''}`), {
+      signal: withTimeout(10000),
+    }),
+  )
+}
+
+export async function createFinanceLedgerTx(body: {
+  amount: number
+  category?: string
+  note?: string
+  date?: string
+}): Promise<{ ok: boolean; transaction: FinanceLedgerTx }> {
+  return json(
+    await fetch(apiUrl('/v1/finance/transactions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: withTimeout(8000),
+    }),
+  )
+}
+
+export async function deleteFinanceLedgerTx(id: string): Promise<{ ok: boolean }> {
+  return json(
+    await fetch(apiUrl(`/v1/finance/transactions/${encodeURIComponent(id)}`), {
+      method: 'DELETE',
+      signal: withTimeout(8000),
+    }),
+  )
+}
+
+export async function uploadFinanceInvoice(
+  file: File,
+  opts?: { transaction_id?: string; note?: string; amount?: number },
+): Promise<{ ok: boolean; invoice: { id: string } }> {
+  const fd = new FormData()
+  fd.append('file', file)
+  if (opts?.transaction_id) fd.append('transaction_id', opts.transaction_id)
+  if (opts?.note) fd.append('note', opts.note)
+  if (opts?.amount != null) fd.append('amount', String(opts.amount))
+  return json(
+    await fetch(apiUrl('/v1/finance/invoices'), {
+      method: 'POST',
+      body: fd,
+      signal: withTimeout(60000),
+    }),
+  )
+}
+
+export async function fetchFinanceInvestments(): Promise<{
+  ok: boolean
+  data: {
+    ibkr: { positions: FinancePosition[]; movements: unknown[] }
+    bitstack: { positions: FinancePosition[]; movements: unknown[] }
+  }
+  summary: FinanceSummary['investments']
+}> {
+  return json(await fetch(apiUrl('/v1/finance/investments'), { signal: withTimeout(10000) }))
+}
+
+export async function upsertFinancePosition(body: {
+  broker: 'ibkr' | 'bitstack'
+  symbol: string
+  qty: number
+  avg_cost?: number | null
+  currency?: string
+}): Promise<{ ok: boolean }> {
+  return json(
+    await fetch(apiUrl('/v1/finance/investments/positions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: withTimeout(8000),
+    }),
+  )
+}
+
+export async function importIbkrCsv(csv: string): Promise<{ ok: boolean; imported: number }> {
+  return json(
+    await fetch(apiUrl('/v1/finance/investments/ibkr-import'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv }),
+      signal: withTimeout(30000),
+    }),
   )
 }
 

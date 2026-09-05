@@ -155,6 +155,61 @@ class ConfirmRequest(BaseModel):
     consequences: str | None = None
 
 
+class FinanceProfileUpdate(BaseModel):
+    salary_monthly: float | None = None
+    currency: str | None = None
+
+
+class FinanceRecurringCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    amount: float
+    cadence: Literal["monthly", "quarterly", "semiannual", "annual"] = "monthly"
+    category: str = "geral"
+    next_due: str | None = None
+    active: bool = True
+
+
+class FinanceRecurringPatch(BaseModel):
+    name: str | None = None
+    amount: float | None = None
+    cadence: Literal["monthly", "quarterly", "semiannual", "annual"] | None = None
+    category: str | None = None
+    next_due: str | None = None
+    active: bool | None = None
+
+
+class FinanceTransactionCreate(BaseModel):
+    amount: float
+    category: str = "geral"
+    note: str = ""
+    date: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    invoice_id: str | None = None
+
+
+class FinancePositionCreate(BaseModel):
+    broker: Literal["ibkr", "bitstack"]
+    symbol: str = Field(min_length=1, max_length=32)
+    qty: float
+    avg_cost: float | None = None
+    currency: str = "EUR"
+
+
+class FinanceMovementCreate(BaseModel):
+    broker: Literal["ibkr", "bitstack"]
+    kind: Literal["buy", "sell", "deposit", "withdraw", "transfer"]
+    symbol: str | None = None
+    qty: float | None = None
+    amount: float | None = None
+    currency: str = "EUR"
+    date: str | None = None
+    note: str = ""
+
+
+class FinanceIbkrImport(BaseModel):
+    csv: str = Field(min_length=1)
+
+
 class HaActionRequest(BaseModel):
     session_id: str
     entity_id: str = Field(min_length=1, max_length=128)
@@ -344,9 +399,10 @@ async def status():
     }
     if settings.ha_enabled:
         try:
-            from friday.integrations.home_assistant import get_status as ha_get_status
+            from friday.integrations.home_assistant import ha_request
 
-            ha_get_status(settings)
+            # Short timeout: never block UI bootstrap (/v1/status has ~8s client abort)
+            ha_request("/api/", settings=settings, timeout=1.5)
             ha_block["ok"] = True
         except Exception as exc:
             logger.debug("HA probe failed: %s", exc)
@@ -366,6 +422,11 @@ async def status():
                 and (settings.google_client_id or "").strip()
                 and (settings.google_client_secret or "").strip()
             ),
+        },
+        "finance": {
+            "enabled": True,
+            "configured": True,
+            "provider": "local_ledger",
         },
         "auto_open_monitors": settings.auto_open_monitors,
         "web_source_required": settings.web_source_required,
@@ -803,6 +864,226 @@ async def health_sync_api(days: int = 7):
         return sync_health(get_settings(), days=max(1, min(days, 30)))
     except HealthSyncError as exc:
         raise HTTPException(502, str(exc)) from exc
+
+
+@app.get("/v1/finance/status")
+async def finance_status():
+    from friday.integrations.finance_ledger import status as fstatus
+
+    return fstatus(get_settings())
+
+
+@app.get("/v1/finance/summary")
+async def finance_summary(year: int | None = None, month: int | None = None):
+    from friday.integrations.finance_ledger import month_summary
+
+    return month_summary(get_settings(), year=year, month=month)
+
+
+@app.get("/v1/finance/profile")
+async def finance_profile_get():
+    from friday.integrations.finance_ledger import get_profile
+
+    return {"ok": True, "profile": get_profile(get_settings())}
+
+
+@app.put("/v1/finance/profile")
+async def finance_profile_put(body: FinanceProfileUpdate):
+    from friday.integrations.finance_ledger import set_profile
+
+    profile = set_profile(
+        get_settings(),
+        salary_monthly=body.salary_monthly,
+        currency=body.currency,
+    )
+    return {"ok": True, "profile": profile}
+
+
+@app.get("/v1/finance/recurring")
+async def finance_recurring_list():
+    from friday.integrations.finance_ledger import list_recurring
+
+    items = list_recurring(get_settings())
+    return {"ok": True, "count": len(items), "items": items}
+
+
+@app.post("/v1/finance/recurring")
+async def finance_recurring_create(body: FinanceRecurringCreate):
+    from friday.integrations.finance_ledger import FinanceLedgerError, add_recurring
+
+    try:
+        item = add_recurring(
+            get_settings(),
+            name=body.name,
+            amount=body.amount,
+            cadence=body.cadence,
+            category=body.category,
+            next_due=body.next_due,
+            active=body.active,
+        )
+    except FinanceLedgerError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "item": item}
+
+
+@app.patch("/v1/finance/recurring/{item_id}")
+async def finance_recurring_patch(item_id: str, body: FinanceRecurringPatch):
+    from friday.integrations.finance_ledger import FinanceLedgerError, update_recurring
+
+    try:
+        item = update_recurring(
+            item_id,
+            get_settings(),
+            **body.model_dump(exclude_unset=True),
+        )
+    except FinanceLedgerError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {"ok": True, "item": item}
+
+
+@app.delete("/v1/finance/recurring/{item_id}")
+async def finance_recurring_delete(item_id: str):
+    from friday.integrations.finance_ledger import FinanceLedgerError, delete_recurring
+
+    try:
+        return delete_recurring(item_id, get_settings())
+    except FinanceLedgerError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.get("/v1/finance/transactions")
+async def finance_transactions_list(
+    year: int | None = None, month: int | None = None, limit: int = 100
+):
+    from friday.integrations.finance_ledger import list_transactions
+
+    rows = list_transactions(
+        get_settings(), year=year, month=month, limit=max(1, min(limit, 500))
+    )
+    return {"ok": True, "count": len(rows), "transactions": rows}
+
+
+@app.post("/v1/finance/transactions")
+async def finance_transactions_create(body: FinanceTransactionCreate):
+    from friday.integrations.finance_ledger import FinanceLedgerError, add_transaction
+
+    try:
+        row = add_transaction(
+            get_settings(),
+            amount=body.amount,
+            category=body.category,
+            note=body.note,
+            tx_date=body.date,
+            tags=body.tags,
+            invoice_id=body.invoice_id,
+        )
+    except FinanceLedgerError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "transaction": row}
+
+
+@app.delete("/v1/finance/transactions/{tx_id}")
+async def finance_transactions_delete(tx_id: str):
+    from friday.integrations.finance_ledger import FinanceLedgerError, delete_transaction
+
+    try:
+        return delete_transaction(tx_id, get_settings())
+    except FinanceLedgerError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.get("/v1/finance/invoices")
+async def finance_invoices_list():
+    from friday.integrations.finance_ledger import list_invoices
+
+    rows = list_invoices(get_settings())
+    return {"ok": True, "count": len(rows), "invoices": rows}
+
+
+@app.post("/v1/finance/invoices")
+async def finance_invoices_upload(
+    file: UploadFile = File(...),
+    transaction_id: str | None = None,
+    note: str = "",
+    amount: float | None = None,
+):
+    from friday.integrations.finance_ledger import FinanceLedgerError, save_invoice
+
+    raw = await file.read()
+    try:
+        meta = save_invoice(
+            filename=file.filename or "invoice.bin",
+            content=raw,
+            settings=get_settings(),
+            transaction_id=transaction_id,
+            note=note,
+            amount=amount,
+        )
+    except FinanceLedgerError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "invoice": meta}
+
+
+@app.get("/v1/finance/investments")
+async def finance_investments_get():
+    from friday.integrations.finance_ledger import get_investments, investments_summary
+
+    return {
+        "ok": True,
+        "data": get_investments(get_settings()),
+        "summary": investments_summary(get_settings()),
+    }
+
+
+@app.post("/v1/finance/investments/positions")
+async def finance_investments_position(body: FinancePositionCreate):
+    from friday.integrations.finance_ledger import FinanceLedgerError, upsert_position
+
+    try:
+        return upsert_position(
+            get_settings(),
+            broker=body.broker,
+            symbol=body.symbol,
+            qty=body.qty,
+            avg_cost=body.avg_cost,
+            currency=body.currency,
+        )
+    except FinanceLedgerError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/v1/finance/investments/movements")
+async def finance_investments_movement(body: FinanceMovementCreate):
+    from friday.integrations.finance_ledger import (
+        FinanceLedgerError,
+        add_investment_movement,
+    )
+
+    try:
+        row = add_investment_movement(
+            get_settings(),
+            broker=body.broker,
+            kind=body.kind,
+            symbol=body.symbol,
+            qty=body.qty,
+            amount=body.amount,
+            currency=body.currency,
+            mv_date=body.date,
+            note=body.note,
+        )
+    except FinanceLedgerError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "movement": row}
+
+
+@app.post("/v1/finance/investments/ibkr-import")
+async def finance_ibkr_import(body: FinanceIbkrImport):
+    from friday.integrations.finance_ledger import FinanceLedgerError, import_ibkr_csv
+
+    try:
+        return import_ibkr_csv(body.csv, get_settings())
+    except FinanceLedgerError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @app.get("/v1/agenda/events")

@@ -2,6 +2,18 @@
 
 Assistente Pessoal Inteligente — monorepo (agente local + treino LLM opcional).
 
+## Onboarding (30 min)
+
+**Novo no repo?** Segue [SETUP.md](SETUP.md) — do `git clone` à UI em http://127.0.0.1:5173.
+
+```powershell
+.\scripts\setup.ps1
+.\scripts\run-agent-api.ps1   # terminal 1
+.\scripts\run-web-ui.ps1      # terminal 2
+```
+
+Contribuir: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) · Problemas: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · ADRs: [docs/ADRs/](docs/ADRs/)
+
 ## Mapa rápido
 
 | Área | Onde |

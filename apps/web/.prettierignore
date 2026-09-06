@@ -1,0 +1,7 @@
+dist
+storybook-static
+coverage
+lhci-reports
+node_modules
+package-lock.json
+*.min.js

@@ -1,0 +1,29 @@
+{
+  "name": "friday-ai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "F.R.I.D.A.Y. monorepo — git hooks and workspace helpers",
+  "scripts": {
+    "prepare": "husky",
+    "setup": "powershell -ExecutionPolicy Bypass -File ./scripts/setup.ps1",
+    "lint:web": "npm run lint --prefix apps/web",
+    "test:web": "npm test --prefix apps/web"
+  },
+  "lint-staged": {
+    "apps/web/src/**/*.{ts,tsx}": [
+      "prettier --write --config apps/web/.prettierrc.json",
+      "npm exec --prefix apps/web -- eslint --config apps/web/eslint.config.mjs --fix --max-warnings 50"
+    ],
+    "apps/web/src/**/*.{css,json,md}": [
+      "prettier --write --config apps/web/.prettierrc.json"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

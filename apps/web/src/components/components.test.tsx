@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MessageBubble } from '../components/MessageBubble'
+import { MessageBubble } from '@/features/chat'
 import { DemoBanner } from '../components/DemoBanner'
 import { CountryContextChip } from '../components/CountryContextChip'
 import { ConfirmationDialog } from '../components/ConfirmationDialog'
@@ -10,11 +10,7 @@ import { useAppStore } from '../state/store'
 
 describe('MessageBubble', () => {
   it('marks demo messages', () => {
-    render(
-      <MessageBubble
-        message={{ id: '1', role: 'assistant', text: 'Olá', demo: true }}
-      />,
-    )
+    render(<MessageBubble message={{ id: '1', role: 'assistant', text: 'Olá', demo: true }} />)
     expect(screen.getByText('Demo')).toBeInTheDocument()
     expect(screen.getByText('Olá')).toBeInTheDocument()
   })

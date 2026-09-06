@@ -1,0 +1,125 @@
+{
+  "generatedAt": "2026-09-06T20:46:22.382Z",
+  "assets": [
+    {
+      "name": "index-Bmzy48HX.js",
+      "type": "js",
+      "raw": 160512,
+      "gzip": 46173,
+      "rawKb": 156.8,
+      "gzipKb": 45.1
+    },
+    {
+      "name": "vendor-react-Bvlcdvno.js",
+      "type": "js",
+      "raw": 142916,
+      "gzip": 45771,
+      "rawKb": 139.6,
+      "gzipKb": 44.7
+    },
+    {
+      "name": "index-Doy0_Og-.css",
+      "type": "css",
+      "raw": 24763,
+      "gzip": 6316,
+      "rawKb": 24.2,
+      "gzipKb": 6.2
+    },
+    {
+      "name": "FinancasPanel--qSXoBtZ.js",
+      "type": "js",
+      "raw": 8826,
+      "gzip": 2448,
+      "rawKb": 8.6,
+      "gzipKb": 2.4
+    },
+    {
+      "name": "SettingsPanel-BU6m0j6Q.js",
+      "type": "js",
+      "raw": 6687,
+      "gzip": 1974,
+      "rawKb": 6.5,
+      "gzipKb": 1.9
+    },
+    {
+      "name": "CasaPanel-CmfyIExr.js",
+      "type": "js",
+      "raw": 4547,
+      "gzip": 1532,
+      "rawKb": 4.4,
+      "gzipKb": 1.5
+    },
+    {
+      "name": "SaudePanel-v6BwlMBy.js",
+      "type": "js",
+      "raw": 3324,
+      "gzip": 1365,
+      "rawKb": 3.2,
+      "gzipKb": 1.3
+    },
+    {
+      "name": "index-Bxkfi-gb.js",
+      "type": "js",
+      "raw": 3556,
+      "gzip": 1293,
+      "rawKb": 3.5,
+      "gzipKb": 1.3
+    },
+    {
+      "name": "MailPanel-Dfwudjy3.js",
+      "type": "js",
+      "raw": 2190,
+      "gzip": 1031,
+      "rawKb": 2.1,
+      "gzipKb": 1
+    },
+    {
+      "name": "AgendaPanel-D-cNP9nK.js",
+      "type": "js",
+      "raw": 1939,
+      "gzip": 978,
+      "rawKb": 1.9,
+      "gzipKb": 1
+    }
+  ],
+  "summary": {
+    "entryJsGzipKb": 46.4,
+    "vendorReactGzipKb": 44.7,
+    "cssTotalGzipKb": 6.2,
+    "initialJsCssGzipKb": 97.2,
+    "lazyPanelChunks": [
+      {
+        "name": "FinancasPanel--qSXoBtZ.js",
+        "gzipKb": 2.4
+      },
+      {
+        "name": "SettingsPanel-BU6m0j6Q.js",
+        "gzipKb": 1.9
+      },
+      {
+        "name": "CasaPanel-CmfyIExr.js",
+        "gzipKb": 1.5
+      },
+      {
+        "name": "SaudePanel-v6BwlMBy.js",
+        "gzipKb": 1.3
+      },
+      {
+        "name": "MailPanel-Dfwudjy3.js",
+        "gzipKb": 1
+      },
+      {
+        "name": "AgendaPanel-D-cNP9nK.js",
+        "gzipKb": 1
+      }
+    ]
+  },
+  "budget": {
+    "entryJsMaxKb": 120,
+    "vendorReactMaxKb": 70,
+    "cssTotalMaxKb": 40,
+    "lazyPanelChunkMaxKb": 40,
+    "initialJsCssMaxKb": 150
+  },
+  "violations": []
+}

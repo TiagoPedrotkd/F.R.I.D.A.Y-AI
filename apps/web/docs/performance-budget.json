@@ -1,0 +1,10 @@
+{
+  "gzip": {
+    "entryJsMaxKb": 120,
+    "vendorReactMaxKb": 70,
+    "cssTotalMaxKb": 40,
+    "lazyPanelChunkMaxKb": 40,
+    "initialJsCssMaxKb": 150
+  },
+  "notes": "Budgets are gzip sizes. Lazy panel chunks do not count toward entryJsMaxKb."
+}

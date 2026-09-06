@@ -17,7 +17,8 @@ from friday.integrations import integrations_root
 CADENCES = ("monthly", "quarterly", "semiannual", "annual")
 CADENCE_DIVISOR = {
     "monthly": 1,
-    "quarterly": 3,
+    # 4 quarters/year → monthly share of a quarterly payment
+    "quarterly": 4,
     "semiannual": 6,
     "annual": 12,
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { HudButton } from '@/components/ui'
 import { useAppStore } from '../state/store'
 
 function PreviewBlock({ preview }: { preview?: Record<string, unknown> }) {
@@ -61,7 +62,10 @@ export function ConfirmationDialog() {
   if (!pending) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      role="presentation"
+    >
       <div
         role="alertdialog"
         aria-modal="true"
@@ -73,7 +77,10 @@ export function ConfirmationDialog() {
         <p className="hud-label" style={{ color: 'var(--color-amber)' }}>
           Autorização
         </p>
-        <h2 id="confirm-title" className="mt-1 font-display text-lg font-semibold tracking-wide text-amber">
+        <h2
+          id="confirm-title"
+          className="mt-1 font-display text-lg font-semibold tracking-wide text-amber"
+        >
           Confirmação necessária
         </h2>
         <p id="confirm-desc" className="mt-3 text-sm text-[var(--text-primary)]">
@@ -92,17 +99,19 @@ export function ConfirmationDialog() {
           Enter não confirma esta acção. Usa os botões ou Escape para cancelar.
         </p>
         <div className="mt-4 flex justify-end gap-2">
-          <button ref={cancelRef} type="button" className="hud-btn" onClick={() => void resolveConfirm('cancel')}>
+          <HudButton ref={cancelRef} onClick={() => void resolveConfirm('cancel')}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            className="hud-btn"
-            style={{ borderColor: 'var(--color-amber)', background: 'rgba(255,176,32,0.85)', color: '#1a1000' }}
+          </HudButton>
+          <HudButton
+            style={{
+              borderColor: 'var(--color-amber)',
+              background: 'rgba(255,176,32,0.85)',
+              color: '#1a1000',
+            }}
             onClick={() => void resolveConfirm('confirm')}
           >
             Confirmar
-          </button>
+          </HudButton>
         </div>
       </div>
     </div>

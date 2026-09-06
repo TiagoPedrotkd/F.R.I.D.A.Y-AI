@@ -1,0 +1,23 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": ["apps/web"],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "typescript.tsdk": "apps/web/node_modules/typescript/lib",
+  "files.eol": "\n",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["hudButtonVariants\\[.+\\]", "[\"'`]([^\"'`]*)[\"'`]"]
+  ]
+}

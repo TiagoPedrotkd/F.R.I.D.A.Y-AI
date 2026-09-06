@@ -1,31 +1,52 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { stateLabel } from '../state/machine'
 import { useAppStore } from '../state/store'
-import { AgendaPanel } from './AgendaPanel'
 import { ActivityTimeline } from './ActivityTimeline'
 import { AlertsBanner } from './AlertsBanner'
-import { CasaPanel } from './CasaPanel'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { ConnectionStatus } from './ConnectionStatus'
-import { ConversationPanel } from './ConversationPanel'
+import { ConversationPanel } from '@/features/chat'
 import { CountryContextChip } from './CountryContextChip'
 import { DemoBanner } from './DemoBanner'
 import { ErrorNotice } from './ErrorNotice'
 import { FridayCore } from './FridayCore'
 import { HudDateGauge, HudRingMeter } from './HudWidgets'
-import { MailPanel } from './MailPanel'
 import { QuickActions } from './QuickActions'
-import { SaudePanel } from './SaudePanel'
-import { FinancasPanel } from './FinancasPanel'
 import { SessionList } from './SessionList'
-import { SettingsPanel } from './SettingsPanel'
 import { SourceCard } from './SourceCard'
 import { VoiceControls } from './VoiceControls'
+
+const SettingsPanel = lazy(() =>
+  import('./SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
+)
+const CasaPanel = lazy(() => import('./CasaPanel').then((m) => ({ default: m.CasaPanel })))
+const SaudePanel = lazy(() => import('./SaudePanel').then((m) => ({ default: m.SaudePanel })))
+const FinancasPanel = lazy(() =>
+  import('@/features/financas').then((m) => ({ default: m.FinancasPanel })),
+)
+const AgendaPanel = lazy(() => import('./AgendaPanel').then((m) => ({ default: m.AgendaPanel })))
+const MailPanel = lazy(() => import('./MailPanel').then((m) => ({ default: m.MailPanel })))
+
+function PanelFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="status">
+      <p className="font-display text-sm tracking-[0.25em] text-cyan">A carregar…</p>
+    </div>
+  )
+}
+
+function LazyPanel({ open, children }: { open: boolean; children: ReactNode }) {
+  if (!open) return null
+  return <Suspense fallback={<PanelFallback />}>{children}</Suspense>
+}
 
 /** Thin holographic wires behind the stage */
 function StageWires() {
   return (
-    <svg className="pointer-events-none absolute inset-0 z-0 hidden h-full w-full lg:block" aria-hidden>
+    <svg
+      className="pointer-events-none absolute inset-0 z-0 hidden h-full w-full lg:block"
+      aria-hidden
+    >
       <defs>
         <linearGradient id="wireGrad" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#5cefff" stopOpacity="0" />
@@ -47,12 +68,7 @@ function StageWires() {
         strokeWidth="1"
         strokeDasharray="4 6"
       />
-      <path
-        d="M 50% 8% L 50% 18%"
-        fill="none"
-        stroke="rgba(92,239,255,0.35)"
-        strokeWidth="1"
-      />
+      <path d="M 50% 8% L 50% 18%" fill="none" stroke="rgba(92,239,255,0.35)" strokeWidth="1" />
     </svg>
   )
 }
@@ -85,8 +101,7 @@ export function AppShell() {
   const state = useAppStore((s) => s.state)
   const lang = prefs.language
   const locale = prefs.language === 'en' ? 'en-GB' : 'pt-PT'
-  const coreLoad =
-    state === 'error' ? 18 : state === 'connecting' ? 40 : state === 'idle' ? 64 : 84
+  const coreLoad = state === 'error' ? 18 : state === 'connecting' ? 40 : state === 'idle' ? 64 : 84
   const busy = ['thinking', 'tool_calling', 'transcribing', 'listening', 'speaking'].includes(state)
   const alert = state === 'awaiting_confirmation'
   const err = state === 'error'
@@ -141,11 +156,18 @@ export function AppShell() {
             data-error={err || undefined}
             role="status"
           >
-            <span className={`hud-state-dot ${busy && !prefs.reducedMotion ? 'hud-pulse' : ''}`} aria-hidden />
+            <span
+              className={`hud-state-dot ${busy && !prefs.reducedMotion ? 'hud-pulse' : ''}`}
+              aria-hidden
+            />
             {stateLabel(state, lang)}
           </div>
           <ConnectionStatus />
-          <button type="button" className="hud-btn md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          <button
+            type="button"
+            className="hud-btn md:hidden"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
             {sidebarOpen ? 'Fechar' : 'Data'}
           </button>
           {(prefs.homeAssistantEnabled || haEnabled) && (
@@ -159,10 +181,18 @@ export function AppShell() {
           <button type="button" className="hud-btn" onClick={() => setFinancasOpen(true)}>
             Finanças
           </button>
-          <button type="button" className="hud-btn hidden sm:inline-flex" onClick={() => setAgendaOpen(true)}>
+          <button
+            type="button"
+            className="hud-btn hidden sm:inline-flex"
+            onClick={() => setAgendaOpen(true)}
+          >
             Agenda
           </button>
-          <button type="button" className="hud-btn hidden sm:inline-flex" onClick={() => setMailOpen(true)}>
+          <button
+            type="button"
+            className="hud-btn hidden sm:inline-flex"
+            onClick={() => setMailOpen(true)}
+          >
             Mail
           </button>
           <button type="button" className="hud-btn" onClick={() => setSettingsOpen(true)}>
@@ -181,7 +211,11 @@ export function AppShell() {
                 <HudDateGauge locale={locale} />
               </div>
               <div className="holo holo-frame mt-3 flex items-start justify-between gap-1 overflow-hidden px-2.5 py-2.5">
-                <HudRingMeter label="API" value={backendOk || demo ? 92 : 14} ok={backendOk || demo} />
+                <HudRingMeter
+                  label="API"
+                  value={backendOk || demo ? 92 : 14}
+                  ok={backendOk || demo}
+                />
                 <HudRingMeter label="LM" value={llmOk || demo ? 88 : 10} ok={llmOk || demo} />
                 <HudRingMeter label="CORE" value={coreLoad} ok={state !== 'error'} />
               </div>
@@ -192,11 +226,17 @@ export function AppShell() {
                 <p className="holo-label mb-2">Contexto</p>
                 <CountryContextChip country={country} />
                 {!country && (
-                  <p className="mt-1 text-xs tracking-wide text-[var(--text-muted)]">Sem país em sessão.</p>
+                  <p className="mt-1 text-xs tracking-wide text-[var(--text-muted)]">
+                    Sem país em sessão.
+                  </p>
                 )}
               </div>
               {offerMonitor && (
-                <button type="button" onClick={openMonitor} className="hud-btn hud-btn-primary w-full">
+                <button
+                  type="button"
+                  onClick={openMonitor}
+                  className="hud-btn hud-btn-primary w-full"
+                >
                   Abrir monitor
                 </button>
               )}
@@ -265,12 +305,24 @@ export function AppShell() {
         )}
       </div>
 
-      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
-      {casaOpen && <CasaPanel onClose={() => setCasaOpen(false)} />}
-      {saudeOpen && <SaudePanel onClose={() => setSaudeOpen(false)} />}
-      {financasOpen && <FinancasPanel onClose={() => setFinancasOpen(false)} />}
-      {agendaOpen && <AgendaPanel onClose={() => setAgendaOpen(false)} />}
-      {mailOpen && <MailPanel onClose={() => setMailOpen(false)} />}
+      <LazyPanel open={settingsOpen}>
+        <SettingsPanel onClose={() => setSettingsOpen(false)} />
+      </LazyPanel>
+      <LazyPanel open={casaOpen}>
+        <CasaPanel onClose={() => setCasaOpen(false)} />
+      </LazyPanel>
+      <LazyPanel open={saudeOpen}>
+        <SaudePanel onClose={() => setSaudeOpen(false)} />
+      </LazyPanel>
+      <LazyPanel open={financasOpen}>
+        <FinancasPanel onClose={() => setFinancasOpen(false)} />
+      </LazyPanel>
+      <LazyPanel open={agendaOpen}>
+        <AgendaPanel onClose={() => setAgendaOpen(false)} />
+      </LazyPanel>
+      <LazyPanel open={mailOpen}>
+        <MailPanel onClose={() => setMailOpen(false)} />
+      </LazyPanel>
       <ConfirmationDialog />
     </div>
   )

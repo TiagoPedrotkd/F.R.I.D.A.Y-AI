@@ -1,20 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import * as api from '../api/client'
-import type { FinanceLedgerTx, FinancePosition, FinanceRecurring, FinanceSummary } from '../api/client'
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-b border-cyan/10 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
-      <p className="font-mono text-sm text-cyan">{value}</p>
-    </div>
-  )
-}
-
-function fmtMoney(v: number | null | undefined, currency = 'EUR'): string {
-  if (v == null || Number.isNaN(v)) return '—'
-  return `${v.toFixed(2)} ${currency}`
-}
+import * as api from '@/api/client'
+import type {
+  FinanceLedgerTx,
+  FinancePosition,
+  FinanceRecurring,
+  FinanceSummary,
+} from '@/api/client'
+import { HudButton } from '@/components/ui'
+import { FinancasSummary } from './FinancasSummary'
+import { fmtMoney, toLedgerAmount, type LedgerKind } from './format'
 
 export function FinancasPanel({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(false)
@@ -32,35 +26,44 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
   const [txAmount, setTxAmount] = useState('')
   const [txNote, setTxNote] = useState('')
   const [txCategory, setTxCategory] = useState('geral')
+  const [txKind, setTxKind] = useState<LedgerKind>('expense')
   const [posSymbol, setPosSymbol] = useState('')
   const [posQty, setPosQty] = useState('')
   const [posCost, setPosCost] = useState('')
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [sum, rec, tx, inv] = await Promise.all([
-        api.fetchFinanceSummary(),
-        api.fetchFinanceRecurring(),
-        api.fetchFinanceLedgerTx(),
-        api.fetchFinanceInvestments(),
-      ])
-      setSummary(sum)
-      setRecurring(rec.items || [])
-      setTxs(tx.transactions || [])
-      if (sum.salary_monthly != null) setSalary(String(sum.salary_monthly))
-      const block = inv.data?.[broker]
-      setPositions(block?.positions || [])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha a ler finanças')
-    } finally {
-      setLoading(false)
-    }
-  }, [broker])
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true)
+      setError(null)
+      try {
+        const [sum, rec, tx, inv] = await Promise.all([
+          // skipCache: summary must refresh after writes (ledger list is uncached)
+          api.fetchFinanceSummary(undefined, undefined, { signal, skipCache: true }),
+          api.fetchFinanceRecurring(),
+          api.fetchFinanceLedgerTx(),
+          api.fetchFinanceInvestments(),
+        ])
+        if (signal?.aborted) return
+        setSummary(sum)
+        setRecurring(rec.items || [])
+        setTxs(tx.transactions || [])
+        if (sum.salary_monthly != null) setSalary(String(sum.salary_monthly))
+        const block = inv.data?.[broker]
+        setPositions(block?.positions || [])
+      } catch (e) {
+        if (signal?.aborted || (e instanceof DOMException && e.name === 'AbortError')) return
+        setError(e instanceof Error ? e.message : 'Falha a ler finanças')
+      } finally {
+        if (!signal?.aborted) setLoading(false)
+      }
+    },
+    [broker],
+  )
 
   useEffect(() => {
-    void load()
+    const ac = new AbortController()
+    void load(ac.signal)
+    return () => ac.abort()
   }, [load])
 
   const currency = summary?.currency || 'EUR'
@@ -79,23 +82,15 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
             <p className="hud-label">Pessoal</p>
             <h2 className="font-display text-lg font-semibold tracking-wide text-cyan">Finanças</h2>
           </div>
-          <button type="button" className="hud-btn" onClick={onClose}>
-            Fechar
-          </button>
+          <HudButton onClick={onClose}>Fechar</HudButton>
         </div>
 
         {error ? <p className="mb-3 text-xs text-amber">{error}</p> : null}
-        <button type="button" className="hud-btn mb-4 text-xs" disabled={loading} onClick={() => void load()}>
+        <HudButton className="mb-4 text-xs" disabled={loading} onClick={() => void load()}>
           Actualizar
-        </button>
+        </HudButton>
 
-        <section className="mb-5">
-          <p className="hud-label mb-1">Resumo do mês</p>
-          <Metric label="Salário" value={fmtMoney(summary?.salary_monthly, currency)} />
-          <Metric label="Despesas" value={fmtMoney(summary?.expenses, currency)} />
-          <Metric label="Recorrentes (imputado)" value={fmtMoney(summary?.recurring_imputed, currency)} />
-          <Metric label="Resto previsto" value={fmtMoney(summary?.remaining, currency)} />
-        </section>
+        <FinancasSummary summary={summary} />
 
         <section className="mb-5">
           <p className="hud-label mb-1">Salário mensal</p>
@@ -106,9 +101,9 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               onChange={(e) => setSalary(e.target.value)}
               placeholder="ex. 1800"
             />
-            <button
-              type="button"
-              className="hud-btn hud-btn-primary text-xs"
+            <HudButton
+              variant="primary"
+              className="text-xs"
               disabled={loading || !salary}
               onClick={() => {
                 void api
@@ -118,7 +113,7 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               }}
             >
               Guardar
-            </button>
+            </HudButton>
           </div>
         </section>
 
@@ -129,7 +124,10 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               <li className="text-xs text-[var(--text-muted)]">Sem recorrentes.</li>
             ) : (
               recurring.map((r) => (
-                <li key={r.id} className="flex items-center justify-between border-b border-cyan/10 py-1.5">
+                <li
+                  key={r.id}
+                  className="flex items-center justify-between border-b border-cyan/10 py-1.5"
+                >
                   <span className="text-[var(--text-muted)]">
                     {r.name} · {r.cadence}
                   </span>
@@ -172,9 +170,8 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               <option value="semiannual">Semestral</option>
               <option value="annual">Anual</option>
             </select>
-            <button
-              type="button"
-              className="hud-btn text-xs"
+            <HudButton
+              className="text-xs"
               disabled={!recName || !recAmount}
               onClick={() => {
                 void api
@@ -192,7 +189,7 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               }}
             >
               Adicionar
-            </button>
+            </HudButton>
           </div>
         </section>
 
@@ -203,21 +200,36 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               <li className="text-xs text-[var(--text-muted)]">Sem lançamentos este mês.</li>
             ) : (
               txs.map((t) => (
-                <li key={t.id} className="flex justify-between gap-2 border-b border-cyan/10 py-1.5">
+                <li
+                  key={t.id}
+                  className="flex justify-between gap-2 border-b border-cyan/10 py-1.5"
+                >
                   <span className="min-w-0 truncate text-[var(--text-muted)]">
                     {t.date} · {t.category} · {t.note || '—'}
                   </span>
-                  <span className="shrink-0 font-mono text-cyan">{fmtMoney(t.amount, currency)}</span>
+                  <span className="shrink-0 font-mono text-cyan">
+                    {fmtMoney(t.amount, currency)}
+                  </span>
                 </li>
               ))
             )}
           </ul>
           <div className="grid grid-cols-2 gap-2">
+            <select
+              className="border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-xs text-cyan"
+              value={txKind}
+              onChange={(e) => setTxKind(e.target.value as LedgerKind)}
+              aria-label="Tipo de lançamento"
+            >
+              <option value="expense">Gasto</option>
+              <option value="income">Rendimento</option>
+            </select>
             <input
               className="border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-xs text-cyan"
-              placeholder="Valor (− gasto)"
+              placeholder={txKind === 'income' ? 'Valor (recebido)' : 'Valor (gasto)'}
               value={txAmount}
               onChange={(e) => setTxAmount(e.target.value)}
+              inputMode="decimal"
             />
             <input
               className="border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-xs text-cyan"
@@ -226,19 +238,23 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               onChange={(e) => setTxCategory(e.target.value)}
             />
             <input
-              className="col-span-2 border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-xs text-cyan"
+              className="border border-cyan/30 bg-[var(--color-night-950)] px-2 py-1 text-xs text-cyan"
               placeholder="Nota"
               value={txNote}
               onChange={(e) => setTxNote(e.target.value)}
             />
-            <button
-              type="button"
-              className="hud-btn text-xs"
+            <HudButton
+              className="text-xs"
               disabled={!txAmount}
               onClick={() => {
+                const amount = toLedgerAmount(Number(txAmount), txKind)
+                if (!Number.isFinite(amount) || amount === 0) {
+                  setError('Indica um valor válido.')
+                  return
+                }
                 void api
                   .createFinanceLedgerTx({
-                    amount: Number(txAmount),
+                    amount,
                     category: txCategory,
                     note: txNote,
                   })
@@ -251,7 +267,7 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               }}
             >
               Registar
-            </button>
+            </HudButton>
             <label className="hud-btn cursor-pointer text-center text-xs">
               Fatura
               <input
@@ -261,10 +277,11 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
                 onChange={(e) => {
                   const f = e.target.files?.[0]
                   if (!f) return
+                  const amount = txAmount ? toLedgerAmount(Number(txAmount), txKind) : undefined
                   void api
                     .uploadFinanceInvoice(f, {
                       note: txNote || f.name,
-                      amount: txAmount ? Math.abs(Number(txAmount)) : undefined,
+                      amount,
                     })
                     .then(() => load())
                     .catch((err) => setError(err instanceof Error ? err.message : 'Upload falhou'))
@@ -277,20 +294,20 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
         <section>
           <p className="hud-label mb-1">Investimentos</p>
           <div className="mb-2 flex gap-2">
-            <button
-              type="button"
-              className={`hud-btn text-xs ${broker === 'ibkr' ? 'hud-btn-primary' : ''}`}
+            <HudButton
+              variant={broker === 'ibkr' ? 'primary' : 'default'}
+              className="text-xs"
               onClick={() => setBroker('ibkr')}
             >
               IBKR
-            </button>
-            <button
-              type="button"
-              className={`hud-btn text-xs ${broker === 'bitstack' ? 'hud-btn-primary' : ''}`}
+            </HudButton>
+            <HudButton
+              variant={broker === 'bitstack' ? 'primary' : 'default'}
+              className="text-xs"
               onClick={() => setBroker('bitstack')}
             >
               Bitstack
-            </button>
+            </HudButton>
           </div>
           <ul className="mb-2 space-y-1 text-sm">
             {positions.length === 0 ? (
@@ -328,9 +345,8 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
             />
           </div>
           <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              className="hud-btn text-xs"
+            <HudButton
+              className="text-xs"
               disabled={!posSymbol || !posQty}
               onClick={() => {
                 void api
@@ -350,7 +366,7 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
               }}
             >
               Guardar posição
-            </button>
+            </HudButton>
             {broker === 'ibkr' ? (
               <label className="hud-btn cursor-pointer text-xs">
                 Import CSV
@@ -365,7 +381,9 @@ export function FinancasPanel({ onClose }: { onClose: () => void }) {
                       api
                         .importIbkrCsv(text)
                         .then(() => load())
-                        .catch((err) => setError(err instanceof Error ? err.message : 'CSV falhou')),
+                        .catch((err) =>
+                          setError(err instanceof Error ? err.message : 'CSV falhou'),
+                        ),
                     )
                   }}
                 />

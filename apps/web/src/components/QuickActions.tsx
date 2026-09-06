@@ -1,3 +1,4 @@
+import { HudButton } from '@/components/ui'
 import { useAppStore } from '../state/store'
 
 const ACTIONS = [
@@ -20,9 +21,7 @@ export function QuickActions({ orbit = false }: { orbit?: boolean }) {
   const state = useAppStore((s) => s.state)
   const disabled = ['listening', 'thinking', 'tool_calling', 'transcribing'].includes(state)
 
-  const actions = ACTIONS.filter(
-    (a) => a.text !== '__open_casa__' || homeAssistantEnabled,
-  )
+  const actions = ACTIONS.filter((a) => a.text !== '__open_casa__' || homeAssistantEnabled)
 
   const run = (text: string) => {
     if (disabled) return
@@ -35,7 +34,10 @@ export function QuickActions({ orbit = false }: { orbit?: boolean }) {
 
   if (orbit) {
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3" aria-label="Acções rápidas">
+      <div
+        className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3"
+        aria-label="Acções rápidas"
+      >
         {actions.map((a) => (
           <button
             key={a.label}
@@ -58,15 +60,14 @@ export function QuickActions({ orbit = false }: { orbit?: boolean }) {
       <p className="holo-label mb-2">Atalhos</p>
       <div className="flex flex-col gap-1.5">
         {actions.map((a) => (
-          <button
+          <HudButton
             key={a.label}
-            type="button"
-            className="hud-btn w-full text-left"
+            className="w-full text-left"
             onClick={() => run(a.text)}
             disabled={disabled}
           >
             {a.label}
-          </button>
+          </HudButton>
         ))}
       </div>
     </section>

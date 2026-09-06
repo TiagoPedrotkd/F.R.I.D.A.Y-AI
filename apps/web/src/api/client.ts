@@ -1,19 +1,28 @@
 import { apiUrl } from '../platform/config'
+import {
+  chat as chatEndpoint,
+  fetchFinanceSummary as fetchFinanceSummaryEndpoint,
+  fetchStatus as fetchStatusEndpoint,
+  type EndpointCallOptions,
+} from './endpoints'
+import type {
+  ActivityStep,
+  ChatResponse,
+  FinanceLedgerTx,
+  FinancePosition,
+  FinanceSummary,
+  SourceItem,
+  StatusResponse,
+} from './schemas'
 
-export type ActivityStep = {
-  label: string
-  status: string
-  tool?: string
-  monitor?: string
-}
-
-export type SourceItem = {
-  title: string
-  url: string
-  snippet?: string
-  source?: string
-  date?: string | null
-  kind?: 'document' | 'memory' | 'web' | 'news' | string | null
+export type {
+  ActivityStep,
+  ChatResponse,
+  FinanceLedgerTx,
+  FinancePosition,
+  FinanceSummary,
+  SourceItem,
+  StatusResponse,
 }
 
 export type PendingConfirmation = {
@@ -29,49 +38,6 @@ export type FridayAlert = {
   kind: string
   message: string
   cta?: string
-}
-
-
-export type ChatResponse = {
-  reply: string
-  metadata: Record<string, unknown>
-  activity: ActivityStep[]
-  ui: {
-    sources?: SourceItem[]
-    headlines_only?: boolean
-    not_realtime_prices?: boolean
-    country?: string
-    kind?: string
-    opened?: boolean
-    monitor_kind?: string | null
-    offer_monitor?: boolean
-    monitor_path?: string | null
-    grounding_score?: number | null
-    grounded?: boolean
-    confidence_score?: number | null
-    confidence_level?: string | null
-    hallucination_risk?: string | null
-  }
-  session?: {
-    last_country?: string | null
-    last_news_context?: string | null
-    last_language?: string
-  }
-  pending_confirmation?: PendingConfirmation | null
-  grounding?: { score?: number; grounded?: boolean }
-  confidence?: { score?: number; level?: string; hallucination_risk?: string }
-  error?: string
-}
-
-export type StatusResponse = {
-  status: string
-  backend: boolean
-  demo: boolean
-  llm: { ok: boolean; model?: string; error?: string | null }
-  ha?: { enabled: boolean; ok?: boolean | null; url?: string | null }
-  google?: { enabled: boolean; configured?: boolean }
-  finance?: { enabled: boolean; configured?: boolean }
-  auto_open_monitors?: boolean
 }
 
 export type HaEntity = {
@@ -109,8 +75,8 @@ async function json<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export async function fetchStatus(): Promise<StatusResponse> {
-  return json(await fetch(apiUrl('/v1/status'), { signal: withTimeout(15000) }))
+export async function fetchStatus(opts?: EndpointCallOptions): Promise<StatusResponse> {
+  return fetchStatusEndpoint(opts)
 }
 
 export async function createSession(): Promise<{ id: string }> {
@@ -122,15 +88,12 @@ export async function createSession(): Promise<{ id: string }> {
   )
 }
 
-export async function chat(sessionId: string, text: string): Promise<ChatResponse> {
-  return json(
-    await fetch(apiUrl('/v1/chat'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, text }),
-      signal: withTimeout(120000),
-    }),
-  )
+export async function chat(
+  sessionId: string,
+  text: string,
+  opts?: EndpointCallOptions,
+): Promise<ChatResponse> {
+  return chatEndpoint({ sessionId, text }, opts)
 }
 
 export async function chatStream(
@@ -376,12 +339,12 @@ export async function fetchHealthDays(limit = 14): Promise<{
   ok: boolean
   days: HealthDay[]
 }> {
-  return json(
-    await fetch(apiUrl(`/v1/health/days?limit=${limit}`), { signal: withTimeout(10000) }),
-  )
+  return json(await fetch(apiUrl(`/v1/health/days?limit=${limit}`), { signal: withTimeout(10000) }))
 }
 
-export async function syncHealth(days = 7): Promise<{ ok: boolean; synced?: number; errors?: string[] }> {
+export async function syncHealth(
+  days = 7,
+): Promise<{ ok: boolean; synced?: number; errors?: string[] }> {
   return json(
     await fetch(apiUrl(`/v1/health/sync?days=${days}`), {
       method: 'POST',
@@ -394,9 +357,7 @@ export async function fetchAgendaEvents(days = 7): Promise<{
   ok: boolean
   events: { uid?: string; summary?: string; start?: string; end?: string }[]
 }> {
-  return json(
-    await fetch(apiUrl(`/v1/agenda/events?days=${days}`), { signal: withTimeout(20000) }),
-  )
+  return json(await fetch(apiUrl(`/v1/agenda/events?days=${days}`), { signal: withTimeout(20000) }))
 }
 
 export async function fetchMailMessages(limit = 15): Promise<{
@@ -418,37 +379,6 @@ export type FinanceStatus = {
   investments_positions?: number
 }
 
-export type FinanceSummary = {
-  ok: boolean
-  year: number
-  month: number
-  currency: string
-  salary_monthly?: number | null
-  income_extra: number
-  expenses: number
-  recurring_imputed: number
-  remaining: number
-  transactions_count: number
-  transactions: FinanceLedgerTx[]
-  recurring_breakdown?: { name?: string; monthly_imputed?: number; cadence?: string }[]
-  investments?: {
-    brokers?: Record<
-      string,
-      { positions_count?: number; cost_basis_approx?: number; positions?: FinancePosition[] }
-    >
-  }
-}
-
-export type FinanceLedgerTx = {
-  id: string
-  date?: string
-  amount?: number
-  category?: string
-  note?: string
-  invoice_id?: string | null
-  source?: string
-}
-
 export type FinanceRecurring = {
   id: string
   name: string
@@ -458,26 +388,16 @@ export type FinanceRecurring = {
   active?: boolean
 }
 
-export type FinancePosition = {
-  id?: string
-  symbol: string
-  qty: number
-  avg_cost?: number | null
-  currency?: string
-}
-
 export async function fetchFinanceStatus(): Promise<FinanceStatus> {
   return json(await fetch(apiUrl('/v1/finance/status'), { signal: withTimeout(8000) }))
 }
 
-export async function fetchFinanceSummary(year?: number, month?: number): Promise<FinanceSummary> {
-  const qs = new URLSearchParams()
-  if (year != null) qs.set('year', String(year))
-  if (month != null) qs.set('month', String(month))
-  const q = qs.toString()
-  return json(
-    await fetch(apiUrl(`/v1/finance/summary${q ? `?${q}` : ''}`), { signal: withTimeout(10000) }),
-  )
+export async function fetchFinanceSummary(
+  year?: number,
+  month?: number,
+  opts?: EndpointCallOptions,
+): Promise<FinanceSummary> {
+  return fetchFinanceSummaryEndpoint({ year, month }, opts)
 }
 
 export async function fetchFinanceProfile(): Promise<{
@@ -533,7 +453,10 @@ export async function deleteFinanceRecurring(id: string): Promise<{ ok: boolean 
   )
 }
 
-export async function fetchFinanceLedgerTx(year?: number, month?: number): Promise<{
+export async function fetchFinanceLedgerTx(
+  year?: number,
+  month?: number,
+): Promise<{
   ok: boolean
   transactions: FinanceLedgerTx[]
 }> {
@@ -657,7 +580,11 @@ export async function fetchAlerts(): Promise<{ alerts: FridayAlert[]; context_ti
   return json(await fetch(apiUrl('/v1/alerts'), { signal: withTimeout(20000) }))
 }
 
-export async function stt(blob: Blob, sessionId?: string, language = 'pt'): Promise<{ text: string }> {
+export async function stt(
+  blob: Blob,
+  sessionId?: string,
+  language = 'pt',
+): Promise<{ text: string }> {
   const form = new FormData()
   form.append('audio', blob, 'speech.wav')
   const q = new URLSearchParams({ language })

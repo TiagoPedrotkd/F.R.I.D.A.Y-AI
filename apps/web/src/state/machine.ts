@@ -11,7 +11,7 @@ export type FridayState =
   | 'error'
 
 /** Valid transitions — single source of truth. */
-const ALLOWED: Record<FridayState, FridayState[]> = {
+export const ALLOWED: Record<FridayState, FridayState[]> = {
   offline: ['connecting', 'idle', 'error'],
   connecting: ['idle', 'offline', 'error'],
   idle: [

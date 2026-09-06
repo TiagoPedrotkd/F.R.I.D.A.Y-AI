@@ -1,5 +1,5 @@
-import type { Message } from '../state/store'
-import { useAppStore } from '../state/store'
+import type { Message } from '@/state/store'
+import { useAppStore } from '@/state/store'
 
 export function MessageBubble({ message }: { message: Message }) {
   const rateMessage = useAppStore((s) => s.rateMessage)
@@ -41,7 +41,9 @@ export function MessageBubble({ message }: { message: Message }) {
         ) : isSystem ? (
           <span className="font-display text-[9px] tracking-[0.25em] text-amber/90">SISTEMA</span>
         ) : (
-          <span className="font-display text-[9px] tracking-[0.25em] text-cyan/70">F.R.I.D.A.Y.</span>
+          <span className="font-display text-[9px] tracking-[0.25em] text-cyan/70">
+            F.R.I.D.A.Y.
+          </span>
         )}
         {message.demo && (
           <span className="font-display text-[9px] font-semibold uppercase tracking-[0.2em] text-amber">

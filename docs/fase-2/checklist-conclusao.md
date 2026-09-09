@@ -1,7 +1,8 @@
 # Checklist de Conclusão — Fase 2 (produto)
 
 Script: `.\scripts\fase2_acceptance.ps1`  
-Último relatório: [`acceptance-last.json`](acceptance-last.json)
+Último relatório: [`acceptance-last.json`](acceptance-last.json)  
+Live smoke: [`live-smoke-last.json`](live-smoke-last.json) · `.\scripts\acceptance\fases2-5_live_gates.ps1`
 
 ## Código / docs
 
@@ -24,7 +25,8 @@ Script: `.\scripts\fase2_acceptance.ps1`
 - [x] Pattern prefs (`productivity_patterns`) + UI Settings + contact book
 - [x] `prepare_meeting` + intent cancel/create com titulo/hora
 - [x] Live setup script (`scripts/fase2_live_setup.ps1`) + Radicale no compose
-- [ ] Credenciais IMAP reais + smoke live (opcional no teu `.env`)
+- [x] CalDAV live: collection `/friday/friday/` + fallback com `GOOGLE_ENABLED=false`
+- [ ] Credenciais IMAP reais + smoke live (`EMAIL_ENABLED` / `IMAP_*` no `.env`)
 - [ ] `tauri build` no teu PC (requer Rust + WebView2)
 
 ## Fora de âmbito

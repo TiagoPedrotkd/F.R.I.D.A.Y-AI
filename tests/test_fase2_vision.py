@@ -148,6 +148,9 @@ async def test_summarize_day_skill():
 
 @pytest.mark.asyncio
 async def test_find_free_slots_requires_caldav():
-    skill = FindFreeSlotsSkill(settings=Settings(CALDAV_ENABLED=False))
+    # Explicitly disable Google too — env may have GOOGLE_ENABLED + tokens from live setup.
+    skill = FindFreeSlotsSkill(
+        settings=Settings(CALDAV_ENABLED=False, GOOGLE_ENABLED=False)
+    )
     result = await skill.execute({})
     assert not result.success

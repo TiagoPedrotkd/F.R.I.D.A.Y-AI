@@ -1,5 +1,5 @@
 ﻿{
-    "at":  "2026-09-04T23:23:47.0664066Z",
+    "at":  "2026-09-09T21:46:13.9261619Z",
     "checks":  {
                    "docs_readme":  {
                                        "detail":  "",
@@ -50,8 +50,8 @@
                                              "ok":  true
                                          },
                    "live_homeassistant":  {
-                                              "detail":  "localhost:8123 (opcional offline)",
-                                              "ok":  false
+                                              "detail":  "localhost:8123",
+                                              "ok":  true
                                           }
                },
     "passed":  true

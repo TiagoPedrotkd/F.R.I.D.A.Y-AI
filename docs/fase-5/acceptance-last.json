@@ -1,5 +1,5 @@
 ﻿{
-    "at":  "2026-09-05T22:42:48.5534564Z",
+    "at":  "2026-09-09T21:50:32.6594755Z",
     "checks":  {
                    "docs_readme":  {
                                        "detail":  "",
@@ -26,7 +26,7 @@
                                             "ok":  true
                                         },
                    "financas_panel":  {
-                                          "detail":  "",
+                                          "detail":  "FinancasPanel.tsx",
                                           "ok":  true
                                       },
                    "pytest_fase5":  {
@@ -36,7 +36,11 @@
                    "skills_finance":  {
                                           "detail":  "",
                                           "ok":  true
-                                      }
+                                      },
+                   "live_finance_status":  {
+                                               "detail":  "status=200",
+                                               "ok":  true
+                                           }
                },
     "passed":  true
 }

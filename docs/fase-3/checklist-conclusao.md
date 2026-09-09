@@ -1,7 +1,8 @@
 # Checklist de Conclusão — Fase 3 (fundação + Casa UI)
 
 Script: `.\scripts\fase3_acceptance.ps1`  
-Relatório: [`acceptance-last.json`](acceptance-last.json)
+Relatório: [`acceptance-last.json`](acceptance-last.json)  
+Live smoke: [`live-smoke-last.json`](live-smoke-last.json)
 
 ## Código / docs
 
@@ -18,13 +19,13 @@ Relatório: [`acceptance-last.json`](acceptance-last.json)
 ## Aceitação automatizada
 
 - [x] `fase3_acceptance.ps1` passa (docs + compose + pytest)
-- [ ] Live HA opcional (`-RequireHomeAssistant`)
+- [x] Live HA (`-RequireHomeAssistant`) — `localhost:8123` + `/v1/ha/status` + entities
 
 ## Live (manual no teu PC)
 
-- [ ] `docker compose --profile mqtt --profile homeassistant up -d`
-- [ ] Token long-lived + `HA_ENABLED=true`
-- [ ] Smoke: “qual o estado da casa?” + painel **Casa**
+- [x] `docker compose --profile mqtt --profile homeassistant up -d`
+- [x] Token long-lived + `HA_ENABLED=true`
+- [x] Smoke: `/v1/ha/status` + entities (painel **Casa** / chat “estado da casa” com LLM up)
 - [ ] Câmaras / Frigate — adiado
 
 ## Fora de âmbito

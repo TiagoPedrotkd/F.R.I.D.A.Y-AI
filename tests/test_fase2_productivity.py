@@ -97,7 +97,10 @@ async def test_send_email_requires_confirmation():
 
 @pytest.mark.asyncio
 async def test_list_calendar_disabled():
-    skill = ListCalendarEventsSkill(settings=Settings(CALDAV_ENABLED=False))
+    # Explicitly disable Google too — env may have GOOGLE_ENABLED + tokens from live setup.
+    skill = ListCalendarEventsSkill(
+        settings=Settings(CALDAV_ENABLED=False, GOOGLE_ENABLED=False)
+    )
     result = await skill.execute({})
     assert not result.success
 

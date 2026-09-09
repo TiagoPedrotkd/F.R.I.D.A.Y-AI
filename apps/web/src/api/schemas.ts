@@ -201,3 +201,104 @@ export const FinanceSummarySchema = z
   .passthrough()
 
 export type FinanceSummary = z.infer<typeof FinanceSummarySchema>
+
+/** Session bootstrap + list. */
+export const CreateSessionResponseSchema = z
+  .object({
+    id: z.string(),
+  })
+  .passthrough()
+
+export type CreateSessionResponse = z.infer<typeof CreateSessionResponseSchema>
+
+export const SessionListItemSchema = z
+  .object({
+    id: z.string(),
+    updated_at: z.number().optional(),
+    message_count: z.number().optional(),
+    preview: z.string().optional(),
+    last_country: z.string().nullable().optional(),
+    last_language: z.string().optional(),
+  })
+  .passthrough()
+
+export const ListSessionsResponseSchema = z
+  .object({
+    sessions: z.array(SessionListItemSchema),
+  })
+  .passthrough()
+
+export type ListSessionsResponse = z.infer<typeof ListSessionsResponseSchema>
+
+export const GetSessionResponseSchema = z
+  .object({
+    id: z.string(),
+    messages: z.array(
+      z
+        .object({
+          role: z.string(),
+          content: z.string(),
+        })
+        .passthrough(),
+    ),
+    session_summary: z.string().optional(),
+    last_country: z.string().nullable().optional(),
+    last_language: z.string().optional(),
+  })
+  .passthrough()
+
+export type GetSessionResponse = z.infer<typeof GetSessionResponseSchema>
+
+export const PrefsResponseSchema = z
+  .object({
+    prefs: z.record(z.string(), z.unknown()),
+    prompt_version: z.string().optional(),
+  })
+  .passthrough()
+
+export type PrefsResponse = z.infer<typeof PrefsResponseSchema>
+
+export const SavePrefsResponseSchema = z
+  .object({
+    prefs: z.record(z.string(), z.unknown()),
+  })
+  .passthrough()
+
+export type SavePrefsResponse = z.infer<typeof SavePrefsResponseSchema>
+
+export const ConfirmResponseSchema = z
+  .object({
+    reply: z.string(),
+    decision: z.string(),
+  })
+  .passthrough()
+
+export type ConfirmResponse = z.infer<typeof ConfirmResponseSchema>
+
+export const FeedbackResponseSchema = z
+  .object({
+    ok: z.boolean(),
+  })
+  .passthrough()
+
+export type FeedbackResponse = z.infer<typeof FeedbackResponseSchema>
+
+export const FridayAlertSchema = z
+  .object({
+    severity: z.string(),
+    kind: z.string(),
+    message: z.string(),
+    cta: z.string().optional(),
+  })
+  .passthrough()
+
+export type FridayAlertDto = z.infer<typeof FridayAlertSchema>
+
+export const AlertsResponseSchema = z
+  .object({
+    alerts: z.array(FridayAlertSchema),
+    context_time: z.string().optional(),
+  })
+  .passthrough()
+
+export type AlertsResponse = z.infer<typeof AlertsResponseSchema>

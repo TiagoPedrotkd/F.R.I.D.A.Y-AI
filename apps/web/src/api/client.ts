@@ -1,10 +1,19 @@
 import { apiUrl } from '../platform/config'
 import {
   chat as chatEndpoint,
+  confirm as confirmEndpoint,
+  createSession as createSessionEndpoint,
+  fetchAlerts as fetchAlertsEndpoint,
   fetchFinanceSummary as fetchFinanceSummaryEndpoint,
+  fetchPrefs as fetchPrefsEndpoint,
   fetchStatus as fetchStatusEndpoint,
+  getSession as getSessionEndpoint,
+  listSessions as listSessionsEndpoint,
+  savePrefs as savePrefsEndpoint,
+  sendFeedback as sendFeedbackEndpoint,
   type EndpointCallOptions,
 } from './endpoints'
+import { chatStream as chatStreamRequest, type ChatStreamOpts } from './stream-client'
 import type {
   ActivityStep,
   ChatResponse,
@@ -79,13 +88,8 @@ export async function fetchStatus(opts?: EndpointCallOptions): Promise<StatusRes
   return fetchStatusEndpoint(opts)
 }
 
-export async function createSession(): Promise<{ id: string }> {
-  return json(
-    await fetch(apiUrl('/v1/sessions'), {
-      method: 'POST',
-      signal: withTimeout(8000),
-    }),
-  )
+export async function createSession(opts?: EndpointCallOptions): Promise<{ id: string }> {
+  return createSessionEndpoint(opts)
 }
 
 export async function chat(
@@ -100,98 +104,43 @@ export async function chatStream(
   sessionId: string,
   text: string,
   onToken: (chunk: string) => void,
-  opts?: { regenerate?: boolean; continue_reply?: boolean },
+  opts?: ChatStreamOpts & { regenerate?: boolean; continue_reply?: boolean },
 ): Promise<ChatResponse> {
-  const res = await fetch(apiUrl('/v1/chat'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      session_id: sessionId,
-      text,
-      stream: true,
-      regenerate: opts?.regenerate ?? false,
-      continue_reply: opts?.continue_reply ?? false,
-    }),
-    signal: withTimeout(180000),
-  })
-  if (!res.ok || !res.body) {
-    const t = await res.text().catch(() => '')
-    throw new Error(t || `HTTP ${res.status}`)
-  }
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let finalPayload: ChatResponse | null = null
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    const parts = buffer.split('\n\n')
-    buffer = parts.pop() ?? ''
-    for (const block of parts) {
-      const lines = block.split('\n')
-      let event = 'message'
-      let data = ''
-      for (const line of lines) {
-        if (line.startsWith('event:')) event = line.slice(6).trim()
-        if (line.startsWith('data:')) data += line.slice(5).trim()
-      }
-      if (!data) continue
-      try {
-        const parsed = JSON.parse(data)
-        if (event === 'token' && parsed.text) onToken(String(parsed.text))
-        if (event === 'done') finalPayload = parsed as ChatResponse
-        if (event === 'error') throw new Error(parsed.error || parsed.reply || 'stream error')
-      } catch (e) {
-        if (e instanceof SyntaxError) continue
-        throw e
-      }
-    }
-  }
-  if (!finalPayload) throw new Error('Stream terminou sem payload final')
-  return finalPayload
+  return chatStreamRequest(sessionId, text, onToken, opts)
 }
 
-export async function sendFeedback(payload: {
-  session_id: string
-  message_id?: string
-  rating: 'up' | 'down'
-  reply_text?: string
-  user_text?: string
-  comment?: string
-  grounding_score?: number | null
-}): Promise<{ ok: boolean }> {
-  return json(
-    await fetch(apiUrl('/v1/feedback'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: withTimeout(10000),
-    }),
-  )
+export async function sendFeedback(
+  payload: {
+    session_id: string
+    message_id?: string
+    rating: 'up' | 'down'
+    reply_text?: string
+    user_text?: string
+    comment?: string
+    grounding_score?: number | null
+  },
+  opts?: EndpointCallOptions,
+): Promise<{ ok: boolean }> {
+  return sendFeedbackEndpoint(payload, opts)
 }
 
-export async function fetchPrefs(): Promise<{
+export async function fetchPrefs(opts?: EndpointCallOptions): Promise<{
   prefs: Record<string, unknown>
   prompt_version?: string
 }> {
-  return json(await fetch(apiUrl('/v1/prefs'), { signal: withTimeout(8000) }))
+  return fetchPrefsEndpoint(opts)
 }
 
-export async function savePrefs(patch: Record<string, unknown>): Promise<{
+export async function savePrefs(
+  patch: Record<string, unknown>,
+  opts?: EndpointCallOptions,
+): Promise<{
   prefs: Record<string, unknown>
 }> {
-  return json(
-    await fetch(apiUrl('/v1/prefs'), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-      signal: withTimeout(8000),
-    }),
-  )
+  return savePrefsEndpoint({ patch }, opts)
 }
 
-export async function listSessions(): Promise<{
+export async function listSessions(opts?: EndpointCallOptions): Promise<{
   sessions: Array<{
     id: string
     updated_at?: number
@@ -201,21 +150,20 @@ export async function listSessions(): Promise<{
     last_language?: string
   }>
 }> {
-  return json(await fetch(apiUrl('/v1/sessions'), { signal: withTimeout(8000) }))
+  return listSessionsEndpoint(opts)
 }
 
-export async function getSession(sessionId: string): Promise<{
+export async function getSession(
+  sessionId: string,
+  opts?: EndpointCallOptions,
+): Promise<{
   id: string
   messages: Array<{ role: string; content: string }>
   session_summary?: string
   last_country?: string | null
   last_language?: string
 }> {
-  return json(
-    await fetch(apiUrl(`/v1/sessions/${encodeURIComponent(sessionId)}`), {
-      signal: withTimeout(8000),
-    }),
-  )
+  return getSessionEndpoint({ sessionId }, opts)
 }
 
 export async function uploadAttachment(
@@ -243,15 +191,9 @@ export async function uploadAttachment(
 export async function confirm(
   sessionId: string,
   decision: 'confirm' | 'cancel',
+  opts?: EndpointCallOptions,
 ): Promise<{ reply: string; decision: string }> {
-  return json(
-    await fetch(apiUrl('/v1/confirm'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, decision }),
-      signal: withTimeout(15000),
-    }),
-  )
+  return confirmEndpoint({ sessionId, decision }, opts)
 }
 
 export async function fetchHaStatus(): Promise<HaStatusResponse> {
@@ -576,8 +518,10 @@ export async function seedDemoConfirmation(sessionId: string): Promise<{
   return json(await fetch(url, { method: 'POST', signal: withTimeout(10000) }))
 }
 
-export async function fetchAlerts(): Promise<{ alerts: FridayAlert[]; context_time?: string }> {
-  return json(await fetch(apiUrl('/v1/alerts'), { signal: withTimeout(20000) }))
+export async function fetchAlerts(
+  opts?: EndpointCallOptions,
+): Promise<{ alerts: FridayAlert[]; context_time?: string }> {
+  return fetchAlertsEndpoint(opts)
 }
 
 export async function stt(

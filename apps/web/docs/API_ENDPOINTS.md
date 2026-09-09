@@ -1,6 +1,6 @@
 # Criar um endpoint tipado
 
-Guia para adicionar um helper JSON type-safe sobre o `HttpClient`. Streaming, uploads e binary ficam em [`client.ts`](../src/api/client.ts) até haver adaptadores dedicados.
+Guia para adicionar um helper JSON type-safe sobre o `HttpClient`. Streaming SSE usa [`stream-client.ts`](../src/api/stream-client.ts). Uploads e binary ficam em [`client.ts`](../src/api/client.ts) até haver adaptadores dedicados.
 
 ## Checklist
 
@@ -44,6 +44,22 @@ export const chat = defineParamEndpoint<{ sessionId: string; text: string }, Cha
   retries: 2,
 })
 ```
+
+## Stream SSE (`chatStream`)
+
+```ts
+import { chatStream } from '@/api/stream-client'
+// ou via client.ts (mesma assinatura pública)
+
+const final = await chatStream(sessionId, text, (token) => append(token), {
+  signal,
+  regenerate: false,
+})
+```
+
+- Partilha `api.resolveUrl` + interceptors `onRequest` / `onError` com o `HttpClient`.
+- **Sem** retry mid-stream; payload `done` validado com `ChatResponseSchema`.
+- Parser utilitário: `feedSseBuffer` / `parseSseBlock` (testado em `__tests__/stream-client.test.ts`).
 
 ## Wrapper em `client.ts` (compat)
 
@@ -98,11 +114,11 @@ api.onRequest.push((ctx) => ({
 
 Erros em DEV passam por `loggingErrorInterceptor`. Com `notify: true` no request, a falha final chama `reportApiError`.
 
-## Fora deste path
+## Fora deste path (ainda legado)
 
 | Tipo | Onde |
 |------|------|
-| SSE / `chatStream` | `client.ts` legado |
-| `EventSource` (`subscribeEvents`) | `client.ts` |
+| `EventSource` (`subscribeEvents`) | `client.ts` (próximo: reutilizar parser SSE) |
 | FormData (`stt`, uploads) | `client.ts` |
 | Binary (`tts`) | `client.ts` |
+| HA / Google / mail / finance CRUD | `client.ts` |

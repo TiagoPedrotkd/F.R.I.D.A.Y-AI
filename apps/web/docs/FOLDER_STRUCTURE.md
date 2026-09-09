@@ -191,7 +191,7 @@ A avaliação externa (coverage &lt;5%, sem hooks/ESLint/Storybook/ErrorBoundary
 |------|--------|
 | Strict TS, ESLint, Prettier, Husky, `@/` | DONE |
 | Zustand slices + validators + persist + docs | DONE |
-| HttpClient + endpoints tipados + Zod | DONE (stream/TTS ainda legado) |
+| HttpClient + endpoints tipados + Zod | DONE (`chatStream` via `stream-client`; TTS/FormData ainda legado) |
 | ErrorBoundary, lazy panels, Storybook, design docs | DONE |
 | `features/chat` + `features/financas` | DONE |
 | `components/ui` (HudButton, HoloPanel) | DONE |
@@ -199,3 +199,4 @@ A avaliação externa (coverage &lt;5%, sem hooks/ESLint/Storybook/ErrorBoundary
 | Playwright / PWA / i18n framework / analytics | **Deferred** (fora de fase) |
 | Migrar Casa/Mail/Settings → `features/` | Próximo |
 | Coverage gate em todo `src/` | Próximo |
+| Cutover LLM / Fases 6–7 (Vaultwarden, coder) | **Adiado** até stream estável + eval do modelo candidato (ver `docs/fase-llm/cutover.md`) |

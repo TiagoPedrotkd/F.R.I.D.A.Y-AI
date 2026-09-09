@@ -1,0 +1,54 @@
+﻿{
+    "at":  "2026-09-09T21:50:30.6372603Z",
+    "checks":  {
+                   "docs_readme":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "docs_oauth":  {
+                                      "detail":  "",
+                                      "ok":  true
+                                  },
+                   "docs_saude":  {
+                                      "detail":  "",
+                                      "ok":  true
+                                  },
+                   "docs_cal_mail":  {
+                                         "detail":  "",
+                                         "ok":  true
+                                     },
+                   "docs_skills":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "oauth_module":  {
+                                        "detail":  "",
+                                        "ok":  true
+                                    },
+                   "health_module":  {
+                                         "detail":  "",
+                                         "ok":  true
+                                     },
+                   "calendar_provider":  {
+                                             "detail":  "",
+                                             "ok":  true
+                                         },
+                   "email_provider":  {
+                                          "detail":  "",
+                                          "ok":  true
+                                      },
+                   "saude_panel":  {
+                                       "detail":  "",
+                                       "ok":  true
+                                   },
+                   "pytest_fase4":  {
+                                        "detail":  "exit=0",
+                                        "ok":  true
+                                    },
+                   "skills_health":  {
+                                         "detail":  "",
+                                         "ok":  true
+                                     }
+               },
+    "passed":  true
+}

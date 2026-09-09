@@ -1,0 +1,10 @@
+﻿{
+    "gates":  {
+                  "financas":  {
+                                   "detail":  "salary=True tx=9 recurring=True invoices=2 skill=True positions=1",
+                                   "ok":  true,
+                                   "investments_pending":  false
+                               }
+              },
+    "at":  "2026-09-09T21:58:19.7863561Z"
+}

@@ -55,7 +55,8 @@ function backoffMs(attempt: number, baseMs: number): number {
   return exp + jitter
 }
 
-function mergeSignals(timeoutMs: number, external?: AbortSignal): AbortSignal {
+/** Merge request timeout with an optional external AbortSignal. */
+export function mergeSignals(timeoutMs: number, external?: AbortSignal): AbortSignal {
   const timeout = AbortSignal.timeout(timeoutMs)
   if (!external) return timeout
   if (typeof AbortSignal.any === 'function') {

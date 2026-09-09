@@ -35,7 +35,11 @@ Set-Check "docs_skills" (Test-Path (Join-Path $Root "docs\fase-5\skills-contract
 Set-Check "no_enablebanking_doc" (-not (Test-Path (Join-Path $Root "docs\fase-5\enablebanking.md"))) ""
 Set-Check "module_ledger" (Test-Path (Join-Path $Root "friday\integrations\finance_ledger.py")) ""
 Set-Check "no_enable_module" (-not (Test-Path (Join-Path $Root "friday\integrations\enable_banking.py"))) ""
-Set-Check "financas_panel" (Test-Path (Join-Path $Root "apps\web\src\components\FinancasPanel.tsx")) ""
+$financasPanel = @(
+    (Join-Path $Root "apps\web\src\features\financas\FinancasPanel.tsx"),
+    (Join-Path $Root "apps\web\src\components\FinancasPanel.tsx")
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+Set-Check "financas_panel" ([bool]$financasPanel) $(if ($financasPanel) { Split-Path $financasPanel -Leaf } else { "missing" })
 
 & $py -m pytest tests/test_fase5_finance.py -q --tb=line
 Set-Check "pytest_fase5" ($LASTEXITCODE -eq 0) "exit=$LASTEXITCODE"

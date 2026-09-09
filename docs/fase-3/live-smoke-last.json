@@ -1,0 +1,9 @@
+﻿{
+    "gates":  {
+                  "home_assistant":  {
+                                         "detail":  "http=True api=True entities=True",
+                                         "ok":  true
+                                     }
+              },
+    "at":  "2026-09-09T21:58:19.7863561Z"
+}

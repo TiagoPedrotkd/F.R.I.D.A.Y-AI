@@ -1,0 +1,10 @@
+﻿{
+    "gates":  {
+                  "imap":  {
+                               "detail":  "EMAIL_*/IMAP_* em falta no .env",
+                               "ok":  false,
+                               "configured":  false
+                           }
+              },
+    "at":  "2026-09-09T21:58:19.7863561Z"
+}

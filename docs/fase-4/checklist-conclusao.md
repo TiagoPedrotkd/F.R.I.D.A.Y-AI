@@ -1,6 +1,7 @@
 # Checklist — Fase 4
 
-Script: `.\scripts\fase4_acceptance.ps1`
+Script: `.\scripts\fase4_acceptance.ps1`  
+Live smoke: [`live-smoke-last.json`](live-smoke-last.json) · `.\scripts\acceptance\fases2-5_live_gates.ps1`
 
 ## Código / docs
 
@@ -13,8 +14,9 @@ Script: `.\scripts\fase4_acceptance.ps1`
 
 ## Live (manual)
 
-- [ ] Cloud Console Testing + test user
-- [ ] `.env` GOOGLE_* + reiniciar agent-api
-- [ ] Conectar Google nas Definições
-- [ ] Sync saúde + listar agenda/mail
-- [ ] Fallback: `GOOGLE_ENABLED=false` → CalDAV/IMAP
+- [x] Cloud Console Testing + test user (OAuth ligado com scopes calendar/gmail/fitness)
+- [x] `.env` GOOGLE_* + reiniciar agent-api
+- [x] Conectar Google nas Definições (`/v1/google/status` → `connected=true`)
+- [x] Sync saúde (`POST /v1/health/sync`) + listar mail (`/v1/mail/messages`) + agenda (`/v1/agenda/events`)
+- [x] Fallback CalDAV: `GOOGLE_ENABLED=false` → Radicale (`/friday/friday/`)
+- [ ] Fallback IMAP puro (requer `EMAIL_*` — ver Fase 2)

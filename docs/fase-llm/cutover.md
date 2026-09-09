@@ -1,5 +1,7 @@
 # Cutover modelo próprio
 
+**Pré-requisito de produto:** não fazer cutover enquanto o chat SSE / escala frontend estiver a mudar — bisect fica confuso. Prod continua `microsoft/phi-4` até o gate abaixo. Vaultwarden (Fase 6) e coder LLM (Fase 7) são architecture-only e só avançam depois do stream estável + necessidade real.
+
 1. Treinar / seleccionar melhor adapter (`friday-llm/checkpoints/...`).
 2. Export GGUF (`python -m friday_llm.export.cli ...`) se aplicável.
 3. Carregar no LM Studio.
